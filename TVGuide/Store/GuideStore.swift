@@ -129,23 +129,26 @@ final class GuideStore {
         guard enabled != includesSkyChannels else { return }
         includesSkyChannels = enabled
         defaults.set(enabled, forKey: Keys.sky)
-        if enabled {
-            await loadSky()
-        } else {
-            skyChannels = []
-            skySchedules = [:]
+        if !enabled {
+            // Drop Sky TV straight away (radio stays), even if the refresh below fails.
+            let radioIDs = Set(skyChannels.filter(\.isRadio).map(\.id))
+            skyChannels = skyChannels.filter(\.isRadio)
+            skySchedules = skySchedules.filter { radioIDs.contains($0.key) }
             assembleSchedules()
             rebuildChannels()
         }
+        await loadSky()
     }
 
     private func loadSkyIfEnabled() async {
-        if includesSkyChannels { await loadSky() }
+        await loadSky()
     }
 
     private func loadSky() async {
         let used = Set(ChannelLineup.channels(for: region).map(\.number))
-        guard let result = try? await skyService.load(excludingNumbers: used, around: now) else { return }
+        // Radio comes from Sky's guide too, so it loads even with Sky TV channels switched off.
+        guard let result = try? await skyService.load(excludingNumbers: used, includeTV: includesSkyChannels,
+                                                      around: now) else { return }
         skyChannels = result.channels
         skySchedules = result.programmes
         assembleSchedules()
@@ -154,7 +157,9 @@ final class GuideStore {
 
     /// Free-to-air line-up for the region plus any Sky channels, in number order.
     private func rebuildChannels() {
-        channels = (ChannelLineup.channels(for: region) + skyChannels).sorted { $0.number < $1.number }
+        // TV in number order, then radio (0101 …), like the Sky guide.
+        channels = (ChannelLineup.channels(for: region) + skyChannels)
+            .sorted { ($0.isRadio ? 1 : 0, $0.number) < ($1.isRadio ? 1 : 0, $1.number) }
         applyLogos()
         streams = playlist?.streams(for: channels) ?? [:]
     }
@@ -162,7 +167,7 @@ final class GuideStore {
     private func applyLogos() {
         channels = channels.map { channel in
             var channel = channel
-            channel.logoURL = logos[channel.id]
+            channel.logoURL = logos[channel.id] ?? channel.logoURL
             return channel
         }
     }
@@ -251,32 +256,47 @@ final class GuideStore {
         }
     }
 
-    func stream(for channel: Channel) -> URL? { streams[channel.id] }
+    /// The viewer's own live source first; radio falls back to the station's public stream.
+    func stream(for channel: Channel) -> URL? {
+        streams[channel.id] ?? (channel.isRadio ? RadioStation.with(number: channel.number)?.stream : nil)
+    }
 
     var tunedChannel: Channel? { tunedChannelID.flatMap(channel(id:)) }
 
     func tune(_ channel: Channel) { tunedChannelID = channel.id }
 
+    /// The channel for digits typed Sky style: "101" is BBC One, "0101" is BBC Radio 1.
+    func channel(digits: String) -> Channel? {
+        guard let number = Int(digits) else { return nil }
+        let wantsRadio = digits.hasPrefix("0")
+        return channels.first { $0.number == number && $0.isRadio == wantsRadio }
+    }
+
     /// Tunes to a channel by its number, Sky style. Returns `false` if no channel has that number.
     @discardableResult
-    func tune(number: Int) -> Bool {
-        guard let channel = channels.first(where: { $0.number == number }) else { return false }
+    func tune(number: Int) -> Bool { tune(digits: String(number)) }
+
+    @discardableResult
+    func tune(digits: String) -> Bool {
+        guard let channel = channel(digits: digits) else { return false }
         tune(channel)
         return true
     }
 
     /// Channel up / down, wrapping around the full line-up.
     func channel(after channel: Channel, offset: Int) -> Channel? {
-        guard !channels.isEmpty, let index = channels.firstIndex(where: { $0.id == channel.id }) else { return nil }
-        let next = (index + offset % channels.count + channels.count) % channels.count
-        return channels[next]
+        // TV zaps through TV channels and radio through radio stations.
+        let list = channels.filter { $0.isRadio == channel.isRadio }
+        guard !list.isEmpty, let index = list.firstIndex(where: { $0.id == channel.id }) else { return nil }
+        let next = (index + offset % list.count + list.count) % list.count
+        return list[next]
     }
 
     // MARK: Channels
 
     var visibleChannels: [Channel] {
         switch category {
-        case .all: channels
+        case .all: channels.filter { !$0.isRadio }
         case .favourites: channels.filter { favourites.contains($0.id) }
         default: channels.filter { $0.category == category }
         }
@@ -328,7 +348,7 @@ final class GuideStore {
         }
 
         var results = SearchResults()
-        results.channels = channels.filter { matches($0.name) || String($0.number) == query.trimmed }
+        results.channels = channels.filter { matches($0.name) || $0.displayNumber == query.trimmed }
         var seen = Set<String>()
         for channel in channels {
             for programme in schedules[channel.id] ?? [] where programme.end > now && matches(programme.title) {

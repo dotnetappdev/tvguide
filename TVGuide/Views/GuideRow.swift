@@ -36,7 +36,7 @@ struct GuideRow: View {
                     }
                     .contextMenu {
                         Button { store.tune(channel) } label: {
-                            Label("Watch \(channel.number) \(channel.name)", systemImage: "play.fill")
+                            Label("Watch \(channel.displayNumber) \(channel.name)", systemImage: "play.fill")
                         }
                         if programme.start > store.now, !programme.isPlaceholder {
                             Button { reminders.toggle(programme, on: channel) } label: {
@@ -125,7 +125,7 @@ private struct ChannelCell: View {
         HStack(spacing: 14) {
             ChannelLogo(channel: channel, height: 40)
             VStack(alignment: .leading, spacing: 0) {
-                Text("\(channel.number)")
+                Text("\(channel.displayNumber)")
                     .font(.system(size: 22, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(Theme.accent)

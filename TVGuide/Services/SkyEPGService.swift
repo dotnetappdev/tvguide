@@ -47,9 +47,11 @@ actor SkyEPGService {
     }
 
     /// Loads Sky pay channels whose numbers aren't already used, plus two days of listings.
-    func load(excludingNumbers used: Set<Int>, around date: Date = Date()) async throws -> (channels: [Channel], programmes: [String: [Programme]]) {
+    func load(excludingNumbers used: Set<Int>, includeTV: Bool = true, around date: Date = Date()) async throws
+        -> (channels: [Channel], programmes: [String: [Programme]]) {
         let services = try await services()
-        let channels = Self.skyChannels(from: services, excluding: used)
+        let channels = (includeTV ? Self.skyChannels(from: services, excluding: used) : [])
+            + Self.radioChannels(from: services)
         guard !channels.isEmpty else { return ([], [:]) }
 
         var programmes: [String: [Programme]] = [:]
@@ -103,6 +105,18 @@ actor SkyEPGService {
                                   hd: raw.hasSuffix("HD"), brand: brand(for: category)))
         }
         return result.sorted { $0.number < $1.number }
+    }
+
+    /// Sky's radio stations (0101 BBC Radio 1 …), with names, logos and
+    /// streams from `RadioStation`.
+    static func radioChannels(from services: [SkyService]) -> [Channel] {
+        services.compactMap { service -> Channel? in
+            guard service.sg == 4, service.c.hasPrefix("0"), let number = Int(service.c) else { return nil }
+            let station = RadioStation.with(number: number)
+            return Channel(number, station?.name ?? service.t, id: "sky:\(service.sid)", .radio,
+                           brand: station?.brand ?? "1F4FD1", logo: station?.logo)
+        }
+        .sorted { $0.number < $1.number }
     }
 
     private static let factualWords = ["Docmntrs", "History", "Nature", "Discovery", "Disc.", "Nat Geo", "NatGeo",

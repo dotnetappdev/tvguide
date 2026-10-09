@@ -10,6 +10,7 @@ enum ChannelCategory: String, CaseIterable, Identifiable, Codable {
     case factual
     case news
     case kids
+    case radio
 
     var id: String { rawValue }
 
@@ -23,6 +24,7 @@ enum ChannelCategory: String, CaseIterable, Identifiable, Codable {
         case .factual: "Documentaries"
         case .news: "News"
         case .kids: "Kids"
+        case .radio: "Radio"
         }
     }
 
@@ -36,14 +38,15 @@ enum ChannelCategory: String, CaseIterable, Identifiable, Codable {
         case .factual: "globe.europe.africa"
         case .news: "newspaper"
         case .kids: "balloon.2"
+        case .radio: "radio"
         }
     }
 
     /// Categories that a channel can belong to (excludes the virtual filters).
-    static var filters: [ChannelCategory] { [.all, .favourites, .entertainment, .films, .sport, .factual, .news, .kids] }
+    static var filters: [ChannelCategory] { [.all, .favourites, .entertainment, .films, .sport, .factual, .news, .kids, .radio] }
 }
 
-/// A broadcast channel in the Freeview line-up.
+/// A TV or radio channel in the guide.
 struct Channel: Identifiable, Hashable, Codable {
     /// The XMLTV channel id used by the EPG feed, e.g. `BBCTwoHD.uk`.
     let id: String
@@ -55,16 +58,21 @@ struct Channel: Identifiable, Hashable, Codable {
     /// Brand colour used for fallback logos and tile gradients, as `RRGGBB`.
     let brandHex: String
     var logoURL: URL?
+    /// Radio station: numbered Sky style with a leading zero ("0101") and played audio-only.
+    var isRadio: Bool { category == .radio }
+
+    /// The number as shown on screen: "101" for TV, "0101" for radio.
+    var displayNumber: String { isRadio ? String(format: "0%03d", number) : String(number) }
 
     init(_ number: Int, _ name: String, id: String, _ category: ChannelCategory,
-         hd: Bool = false, brand: String = "1F4FD1") {
+         hd: Bool = false, brand: String = "1F4FD1", logo: URL? = nil) {
         self.id = id
         self.number = number
         self.name = name
         self.category = category
         self.isHD = hd
         self.brandHex = brand
-        self.logoURL = nil
+        self.logoURL = logo
     }
 
     /// Two or three letter monogram for the fallback logo.

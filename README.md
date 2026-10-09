@@ -34,6 +34,16 @@ Sky channels arrive by satellite, so a Freeview tuner can't receive them; watch 
 
 `TVGuide-Info.plist` allows plain `http`, local-network access and Bonjour browsing for `_channels_dvr._tcp`.
 
+## Radio
+
+Like Sky, radio stations sit after the TV channels with **0-prefixed numbers**: type **0101** for BBC Radio 1, 0104 Radio 4, 0106 Classic FM, 0107 talkSPORT, 0108 Capital, 0121 LBC, 0142 Times Radio (or choose **Radio** in the sidebar).
+
+- **42 stations** from Sky's radio line-up, with Sky's own radio listings (show titles, presenters, now and next) and station logos.
+- Plays **directly in the app** using each broadcaster's public internet stream: the BBC's HLS streams, and the stations' own streams for Global (Capital, Heart, Classic FM, LBC, Smooth, Radio X, Gold), talkSPORT, Virgin Radio, Times Radio and RTÉ. 39 stations have a stream (checked when added); WRN Europe, BBC 5 Sports Extra and BFBS show listings only.
+- A Sky style **now playing** screen: big station logo and number, the current show with a progress bar, a moving level meter and what's on next. **Up / down** changes station.
+- Radio **keeps playing when you leave the app** (background audio) and shows in the Apple TV's Now Playing screen; TV pauses as before.
+- The BBC streams used are the international ones, so a few programmes (some sports commentary) can be replaced outside the UK. Stream addresses live in `TVGuide/Models/RadioStations.swift` if one ever changes.
+
 ## Search, reminders and Sky channels
 
 - **Search** (top of the sidebar) uses tvOS's own search screen: the A–Z keyboard row, or **hold the microphone button on the Siri Remote and say** a programme, channel name or number. Results show channels, what's on now (select to watch) and what's coming up across the week (select for info, press and hold to set a reminder).
@@ -89,7 +99,8 @@ TVGuide/
   Services/EPGService.swift      Download + disk cache of the Freeview feed
   Services/SampleSchedule.swift  Offline fallback listings
   Services/M3UPlaylist.swift     Live TV playlist parsing and channel matching
-  Services/SkyEPGService.swift   Sky channel line-up and listings
+  Services/SkyEPGService.swift   Sky channel line-up and listings (TV and radio)
+  Models/RadioStations.swift     Radio station names, logos and public streams
   Services/ChannelsDVR.swift     Channels DVR client: HLS playlist and guide from the aerial
   Services/LiveTVDiscovery.swift Finds Channels DVR servers (Bonjour) and HDHomeRun tuners
   Services/ChannelMatcher.swift  Matches tuner/playlist channel names to the guide
@@ -108,7 +119,7 @@ TVGuide/
 | Grid | ← / → | Move between programmes; at the edges scroll the timeline by 30 minutes |
 | Grid | ↑ / ↓ | Move between channels (scroll up past the first channel to reach the tiles) |
 | Grid / tiles | Select | Watch the channel (on now) or open programme info (later) |
-| Anywhere in the guide | Number keys | Tune Sky style, e.g. 101 |
+| Anywhere in the guide | Number keys | Tune Sky style, e.g. 101 for BBC One or 0101 for BBC Radio 1 |
 | Grid / tiles | Press & hold | Watch, programme info, favourites |
 | Live TV | ↑ / ↓ | Channel up / down |
 | Live TV | Select | Show the now & next banner |

@@ -31,7 +31,7 @@ struct HeroPanel: View {
         return VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 16) {
                 ChannelLogo(channel: channel, height: 40)
-                Text("\(channel.number)")
+                Text("\(channel.displayNumber)")
                     .font(.system(size: 28, weight: .heavy))
                     .monospacedDigit()
                     .foregroundStyle(Theme.accent)
@@ -102,7 +102,8 @@ struct LivePreview: View {
 
     var body: some View {
         let stream = store.stream(for: channel)
-        let showsVideo = stream != nil && programme?.isOn(at: store.now) != false
+        // Radio has no pictures to preview (and the preview is muted), so it shows the artwork.
+        let showsVideo = stream != nil && !channel.isRadio && programme?.isOn(at: store.now) != false
 
         ZStack(alignment: .bottomLeading) {
             Artwork(url: programme?.imageURL, channel: channel)
@@ -114,7 +115,7 @@ struct LivePreview: View {
             }
             LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .center, endPoint: .bottom)
             HStack(spacing: 10) {
-                Text("\(channel.number)")
+                Text("\(channel.displayNumber)")
                     .font(.system(size: 24, weight: .heavy))
                     .monospacedDigit()
                     .foregroundStyle(Theme.accent)

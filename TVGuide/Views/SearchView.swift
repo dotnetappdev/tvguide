@@ -121,7 +121,7 @@ private struct ChannelResult: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            Text("\(channel.number)")
+            Text("\(channel.displayNumber)")
                 .font(.system(size: 30, weight: .heavy))
                 .monospacedDigit()
                 .foregroundStyle(Theme.accent)
@@ -147,8 +147,8 @@ private struct ProgrammeResult: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(programme.title).font(.system(size: 24, weight: .bold)).lineLimit(1)
                 Text(programme.isOn(at: now)
-                     ? "Now · \(channel.number) \(channel.name)"
-                     : "\(Fmt.day(programme.start, relativeTo: now)) \(Fmt.time(programme.start)) · \(channel.number) \(channel.name)")
+                     ? "Now · \(channel.displayNumber) \(channel.name)"
+                     : "\(Fmt.day(programme.start, relativeTo: now)) \(Fmt.time(programme.start)) · \(channel.displayNumber) \(channel.name)")
                     .font(.system(size: 18, weight: .medium))
                     .foregroundStyle(.white.opacity(0.8))
                     .lineLimit(1)

@@ -3,7 +3,8 @@ import SwiftUI
 /// Sky style direct channel entry: type 1-0-1 and BBC One comes on.
 ///
 /// Digits come from a keyboard / universal remote via `onKeyPress`, or from
-/// the on-screen `NumberPad` for the Siri Remote. After three digits, or a
+/// the on-screen `NumberPad` for the Siri Remote. Radio stations start with
+/// a zero, as on Sky (0101 BBC Radio 1). After three digits (four for radio), or a
 /// short pause, the channel is tuned.
 struct ChannelNumberEntry: ViewModifier {
     @Environment(GuideStore.self) private var store
@@ -19,7 +20,7 @@ struct ChannelNumberEntry: ViewModifier {
             }
             .overlay(alignment: .topTrailing) {
                 if !digits.isEmpty || message != nil {
-                    NumberDisplay(text: message ?? digits.padding(toLength: 3, withPad: "–", startingAt: 0),
+                    NumberDisplay(text: message ?? digits.padding(toLength: ChannelDigits.length(of: digits), withPad: "–", startingAt: 0),
                                   isError: message != nil)
                         .padding(.top, 50)
                         .padding(.trailing, 80)
@@ -32,9 +33,9 @@ struct ChannelNumberEntry: ViewModifier {
 
     private func append(_ characters: String) {
         message = nil
-        digits = String((digits + characters.filter(\.isNumber)).suffix(3))
+        digits = ChannelDigits.append(characters.filter(\.isNumber), to: digits)
         commitTask?.cancel()
-        if digits.count == 3 {
+        if digits.count == ChannelDigits.length(of: digits) {
             commit()
         } else {
             commitTask = Task {
@@ -46,10 +47,11 @@ struct ChannelNumberEntry: ViewModifier {
     }
 
     private func commit() {
-        guard let number = Int(digits) else { digits = ""; return }
+        let typed = digits
         digits = ""
-        if !store.tune(number: number) {
-            message = "No channel \(number)"
+        guard !typed.isEmpty else { return }
+        if !store.tune(digits: typed) {
+            message = "No channel \(typed)"
             commitTask = Task {
                 try? await Task.sleep(for: .seconds(2))
                 guard !Task.isCancelled else { return }
@@ -103,7 +105,7 @@ struct NumberPad: View {
                     .font(.system(size: 40, weight: .bold))
                     .foregroundStyle(Theme.accent)
 
-                NumberDisplay(text: error ?? digits.padding(toLength: 3, withPad: "–", startingAt: 0),
+                NumberDisplay(text: error ?? digits.padding(toLength: ChannelDigits.length(of: digits), withPad: "–", startingAt: 0),
                               isError: error != nil)
 
                 Text(preview ?? " ")
@@ -125,7 +127,7 @@ struct NumberPad: View {
     }
 
     private var preview: String? {
-        guard let number = Int(digits), let channel = store.channels.first(where: { $0.number == number }) else { return nil }
+        guard let channel = store.channel(digits: digits) else { return nil }
         return channel.name
     }
 
@@ -135,13 +137,13 @@ struct NumberPad: View {
         case "⌫": digits = String(digits.dropLast())
         case "OK": tune()
         default:
-            digits = String((digits + key).suffix(3))
-            if digits.count == 3 { tune() }
+            digits = ChannelDigits.append(key, to: digits)
+            if digits.count == ChannelDigits.length(of: digits) { tune() }
         }
     }
 
     private func tune() {
-        guard let number = Int(digits), let channel = store.channels.first(where: { $0.number == number }) else {
+        guard let channel = store.channel(digits: digits) else {
             error = digits.isEmpty ? nil : "No channel \(digits)"
             digits = ""
             return
@@ -169,5 +171,21 @@ struct NumberPad: View {
                     .animation(.easeOut(duration: 0.12), value: isFocused)
             }
         }
+    }
+}
+
+/// Sky style number entry rules: TV numbers are three digits, radio numbers
+/// four with a leading zero.
+enum ChannelDigits {
+    static func length(of digits: String) -> Int { digits.hasPrefix("0") ? 4 : 3 }
+
+    /// Adds typed digits, starting again once a full number has been entered.
+    static func append(_ new: String, to digits: String) -> String {
+        var result = digits
+        for character in new {
+            if result.count >= length(of: result) { result = "" }
+            result.append(character)
+        }
+        return result
     }
 }
