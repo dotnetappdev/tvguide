@@ -1,0 +1,21 @@
+# Optional: regenerate TVGuide.xcodeproj with XcodeGen (`brew install xcodegen && xcodegen`).
+name: TVGuide
+options:
+  bundleIdPrefix: com.dotnetappdev
+  deploymentTarget:
+    tvOS: "17.0"
+targets:
+  TVGuide:
+    type: application
+    platform: tvOS
+    sources: [TVGuide]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dotnetappdev.tvguide
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: TV Guide
+        INFOPLIST_KEY_UIUserInterfaceStyle: Dark
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "5.0"
