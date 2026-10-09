@@ -36,13 +36,21 @@ Sky channels arrive by satellite, so a Freeview tuner can't receive them; watch 
 
 ## Radio
 
-Like Sky, radio stations sit after the TV channels with **0-prefixed numbers**: type **0101** for BBC Radio 1, 0104 Radio 4, 0106 Classic FM, 0107 talkSPORT, 0108 Capital, 0121 LBC, 0142 Times Radio (or choose **Radio** in the sidebar).
+Like Sky, radio stations sit after the TV channels with **0-prefixed numbers** – type **0101** for BBC Radio 1, or choose **Radio** in the sidebar. About **156 stations**, Sky style numbering:
 
-- **42 stations** from Sky's radio line-up, with Sky's own radio listings (show titles, presenters, now and next) and station logos.
-- Plays **directly in the app** using each broadcaster's public internet stream: the BBC's HLS streams, and the stations' own streams for Global (Capital, Heart, Classic FM, LBC, Smooth, Radio X, Gold), talkSPORT, Virgin Radio, Times Radio and RTÉ. 39 stations have a stream (checked when added); WRN Europe, BBC 5 Sports Extra and BFBS show listings only.
-- A Sky style **now playing** screen: big station logo and number, the current show with a progress bar, a moving level meter and what's on next. **Up / down** changes station.
-- Radio **keeps playing when you leave the app** (background audio) and shows in the Apple TV's Now Playing screen; TV pauses as before.
-- The BBC streams used are the international ones, so a few programmes (some sports commentary) can be replaced outside the UK. Stream addresses live in `TVGuide/Models/RadioStations.swift` if one ever changes.
+| Numbers | Stations |
+| --- | --- |
+| 0101–0142 | Sky's own radio list: BBC Radio 1–6 Music, 1Xtra, 4 Extra, 5 Sports Extra, World Service, Asian Network, the BBC nations stations, Classic FM, talkSPORT, Capital, Capital Xtra, Heart (+80s, 90s, Dance), Radio X, Gold, LBC, LBC News, Smooth, Virgin Radio, Times Radio, RTÉ … |
+| 0143–0146 | Extra BBC streams: Radio 1 Dance, Radio 1 Anthems, Radio 3 Unwind, BBC Live News |
+| 0150–0189 | National: **Absolute Radio** (+70s, 80s, 90s, 00s, 10s, Classic Rock, Country), KISS, KISSTORY, KISS XTRA, Magic (+Mellow, Soul, Musicals, Classical), Greatest Hits Radio (+60s, 70s, 80s), Hits Radio (+90s, 00s, Chilled), Jazz FM, Planet Rock, Kerrang!, heat, Boom Radio, GB News Radio, **LBC London**, Capital Dance/Chill, Heart 70s/00s, Smooth Chill/Country, Radio X Classic Rock |
+| 0200–0241 | **BBC Local Radio** – every English local station plus Guernsey, Jersey, Orkney and Shetland |
+| 0260 onwards | Regional: Clyde 1, West FM, Forth 1, Northsound 1, MFR, Tay FM, Smooth Scotland, **Cool FM**, **Downtown Radio**, Downtown Country, Capital Cymru, Capital South Wales, Heart Wales, Radio City, Rock FM, Metro, Hallam, Viking, Free Radio, Gem 106, Capital Manchester/Midlands, Heart and Smooth regions |
+
+- **Plays directly in the app** from the broadcasters' own streams: the BBC's HLS streams, Global's (Capital, Heart, Smooth, LBC, Radio X, Classic FM, Gold), Rayo's (Absolute, KISS, Magic, Greatest Hits, Hits Radio, Cool FM, Downtown, Clyde …), talkSPORT, Virgin, Times Radio, Boom and GB News. BBC and Global addresses were checked when added (`TVGuide/Models/RadioStations.swift`, `RadioCatalogue.swift`); Rayo's are loaded live from Rayo's station list, so they stay current. If a stream fails the player tries the station's next one.
+- **Listings and live info:** Sky's radio listings for 0101–0142, the Freeview guide for BBC local radio, and for Rayo stations the show on air plus the **song playing now** (refreshed every 30 seconds on the radio screen). Stations without published listings show their strapline.
+- A Sky style **now playing** screen: big logo and number, current show with progress, the song playing, a moving level meter and what's next. **Up / down** changes station.
+- Radio **keeps playing when you leave the app** and shows in the Apple TV's Now Playing screen.
+- Notes: Rayo's streams only play in the UK. KISS DANCE and Cool Old Skool stream only to Rayo Premium subscribers, and WRN Europe and BFBS have no public stream, so these show listings only. The BBC streams used are the international ones, so a few programmes (some sports commentary) can be replaced.
 
 ## Search, reminders and Sky channels
 
@@ -100,7 +108,9 @@ TVGuide/
   Services/SampleSchedule.swift  Offline fallback listings
   Services/M3UPlaylist.swift     Live TV playlist parsing and channel matching
   Services/SkyEPGService.swift   Sky channel line-up and listings (TV and radio)
-  Models/RadioStations.swift     Radio station names, logos and public streams
+  Models/RadioStations.swift     Sky radio list (0101–0142): names, logos, streams
+  Models/RadioCatalogue.swift    Further UK stations (0143+): national, BBC local, regional
+  Services/RayoService.swift     Rayo stations' live streams, logos, on-air show and song
   Services/ChannelsDVR.swift     Channels DVR client: HLS playlist and guide from the aerial
   Services/LiveTVDiscovery.swift Finds Channels DVR servers (Bonjour) and HDHomeRun tuners
   Services/ChannelMatcher.swift  Matches tuner/playlist channel names to the guide

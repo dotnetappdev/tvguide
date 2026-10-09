@@ -17,10 +17,13 @@ struct LivePlayerView: View {
     @State private var isBuffering = false
     @State private var playbackError: String?
     @State private var appMessage: String?
+    /// Which of the channel's streams is playing (radio stations can have several).
+    @State private var streamIndex = 0
 
     var body: some View {
         let channel = store.tunedChannel
-        let stream = channel.flatMap(store.stream(for:))
+        let candidates = channel.map(store.streams(for:)) ?? []
+        let stream = candidates.indices.contains(streamIndex) ? candidates[streamIndex] : candidates.first
 
         ZStack(alignment: .bottom) {
             Color.black.ignoresSafeArea()
@@ -69,13 +72,17 @@ struct LivePlayerView: View {
             isBuffering = status == .waitingToPlayAtSpecifiedRate
         }
         .onReceive(player.publisher(for: \.currentItem?.status)) { status in
-            if status == .failed {
+            guard status == .failed else { return }
+            if streamIndex + 1 < candidates.count {
+                streamIndex += 1 // try the station's next stream
+            } else {
                 playbackError = player.currentItem?.error?.localizedDescription ?? "The stream couldn't be played."
             }
         }
         .task(id: "\(store.tunedChannelID ?? "")|\(channel.flatMap(store.current(on:))?.id ?? "")") {
             updateNowPlaying(channel)
         }
+        .onChange(of: store.tunedChannelID) { _, _ in streamIndex = 0 }
         .onChange(of: scenePhase) { _, phase in
             // Radio keeps playing in the background (like the Music app); TV pauses.
             if phase == .background, channel?.isRadio != true { player.pause() }
@@ -362,6 +369,13 @@ private struct RadioNowPlaying: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.7)
 
+                    if let track = store.nowPlaying[channel.id] {
+                        Label(track, systemImage: "music.note")
+                            .font(.system(size: 30, weight: .semibold))
+                            .foregroundStyle(Theme.accent)
+                            .lineLimit(1)
+                    }
+
                     if let synopsis = now?.synopsis {
                         Text(synopsis)
                             .font(.system(size: 28))
@@ -415,6 +429,13 @@ private struct RadioNowPlaying: View {
             .transition(.opacity)
         }
         .animation(.easeInOut(duration: 0.3), value: channel.id)
+        .task(id: channel.id) {
+            // Keep the song title current while the station is on screen.
+            while !Task.isCancelled {
+                await store.refreshNowPlaying(for: channel)
+                try? await Task.sleep(for: .seconds(30))
+            }
+        }
     }
 }
 

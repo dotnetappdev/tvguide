@@ -41,6 +41,12 @@ final class GuideStore {
     /// Channels DVR server used for live TV and as a backup guide from the aerial.
     private(set) var channelsServer: URL?
     private var tunerSchedules: [String: [Programme]] = [:]
+    /// Extra radio stations (`RadioCatalogue`) with live details from Rayo.
+    private let rayoService = RayoService()
+    private var rayoStations: [String: RayoService.Station] = [:]
+    private var radioSchedules: [String: [Programme]] = [:]
+    /// The song playing now on Rayo stations, by channel id.
+    private(set) var nowPlaying: [String: String] = [:]
     private var internetSchedules: [String: [Programme]] = [:]
 
     /// "I have Sky / NOW": adds Sky Cinema, Sky Sports and Sky entertainment channels.
@@ -70,6 +76,7 @@ final class GuideStore {
 
     func start() async {
         startClock()
+        rebuildChannels()
         async let listings: Void = load()
         async let live: Void = loadLiveSource()
         _ = await (listings, live)
@@ -78,8 +85,10 @@ final class GuideStore {
     func load(forceRefresh: Bool = false) async {
         if schedules.isEmpty { state = .loading }
         let ids = Set(ChannelLineup.channels(for: region).map(\.id))
-        // Sky listings download alongside the Freeview feed.
+            .union(CatalogueStation.all.map(\.id).filter { !$0.hasPrefix("radio:") })
+        // Sky and Rayo listings download alongside the Freeview feed.
         async let sky: Void = loadSkyIfEnabled()
+        async let rayo: Void = loadRayo()
         do {
             apply(try await service.load(channelIDs: ids, forceRefresh: forceRefresh))
         } catch {
@@ -97,6 +106,7 @@ final class GuideStore {
             }
         }
         await sky
+        await rayo
     }
 
     func apply(_ snapshot: EPGSnapshot) {
@@ -108,13 +118,74 @@ final class GuideStore {
     }
 
     /// Internet listings first, then Sky's, then the tuner's guide for any
-    /// channel still without listings.
+    /// channel still without listings, then Rayo's on-air shows. Radio
+    /// stations with no listings at all get a day-long "live" entry.
     private func assembleSchedules() {
         var merged = internetSchedules.merging(skySchedules) { a, _ in a }
         for (id, listings) in tunerSchedules where merged[id]?.isEmpty ?? true {
             merged[id] = listings
         }
+        for (id, listings) in radioSchedules where merged[id]?.isEmpty ?? true {
+            merged[id] = listings
+        }
+        for station in CatalogueStation.all where merged[station.id]?.isEmpty ?? true {
+            merged[station.id] = [liveRadioListing(for: station)]
+        }
         schedules = merged
+    }
+
+    /// A placeholder covering today for stations without published listings.
+    private func liveRadioListing(for station: CatalogueStation) -> Programme {
+        let start = Calendar.current.startOfDay(for: now)
+        let strapline = station.rayoCode.flatMap { rayoStations[$0]?.strapline }
+        return Programme(channelID: station.id, title: station.name,
+                         synopsis: strapline ?? station.tagline ?? "Live radio · \(station.region)",
+                         start: start, end: start.addingTimeInterval(2 * 86_400))
+    }
+
+    // MARK: Radio catalogue
+
+    /// Fetches live details (streams, logos, on-air show, song) for Rayo stations.
+    private func loadRayo() async {
+        let rayo = CatalogueStation.all.filter { $0.rayoCode != nil }
+        let ids = Dictionary(uniqueKeysWithValues: rayo.map { ($0.rayoCode!, $0.id) })
+        let stations = await rayoService.stations(codes: Set(ids.keys), channelIDs: ids)
+        rayoStations = stations
+        radioSchedules = Dictionary(uniqueKeysWithValues: stations.compactMap { code, station in
+            station.onAir.map { (ids[code]!, [$0]) }
+        })
+        for (code, station) in stations {
+            if let track = station.nowPlaying, let id = ids[code] { nowPlaying[id] = track }
+        }
+        assembleSchedules()
+        rebuildChannels()
+    }
+
+    /// Updates the song playing on a Rayo station (called while its radio screen is showing).
+    func refreshNowPlaying(for channel: Channel) async {
+        guard let code = CatalogueStation.all.first(where: { $0.id == channel.id })?.rayoCode else { return }
+        if let track = await rayoService.nowPlaying(code: code) { nowPlaying[channel.id] = track }
+    }
+
+    /// Catalogue stations as channels, with Rayo's logos and colours where loaded.
+    private var catalogueChannels: [Channel] {
+        CatalogueStation.all.map { station in
+            let rayo = station.rayoCode.flatMap { rayoStations[$0] }
+            return Channel(station.number, station.name, id: station.id, .radio,
+                           brand: rayo?.colourHex ?? "1F4FD1", logo: rayo?.logo)
+        }
+    }
+
+    private func radioStreams(for channel: Channel) -> [URL] {
+        if let fixed = RadioStation.with(number: channel.number)?.stream, channel.id.hasPrefix("sky:") { return [fixed] }
+        guard let station = CatalogueStation.all.first(where: { $0.id == channel.id }) else { return [] }
+        if let url = station.fixedStream { return [url] }
+        return station.rayoCode.flatMap { rayoStations[$0]?.streams } ?? []
+    }
+
+    /// Every stream to try for a channel, best first (the player moves on if one fails).
+    func streams(for channel: Channel) -> [URL] {
+        (streams[channel.id].map { [$0] } ?? []) + (channel.isRadio ? radioStreams(for: channel) : [])
     }
 
     func setRegion(_ region: Region) async {
@@ -158,7 +229,7 @@ final class GuideStore {
     /// Free-to-air line-up for the region plus any Sky channels, in number order.
     private func rebuildChannels() {
         // TV in number order, then radio (0101 …), like the Sky guide.
-        channels = (ChannelLineup.channels(for: region) + skyChannels)
+        channels = (ChannelLineup.channels(for: region) + skyChannels + catalogueChannels)
             .sorted { ($0.isRadio ? 1 : 0, $0.number) < ($1.isRadio ? 1 : 0, $1.number) }
         applyLogos()
         streams = playlist?.streams(for: channels) ?? [:]
@@ -258,7 +329,7 @@ final class GuideStore {
 
     /// The viewer's own live source first; radio falls back to the station's public stream.
     func stream(for channel: Channel) -> URL? {
-        streams[channel.id] ?? (channel.isRadio ? RadioStation.with(number: channel.number)?.stream : nil)
+        streams(for: channel).first
     }
 
     var tunedChannel: Channel? { tunedChannelID.flatMap(channel(id:)) }
