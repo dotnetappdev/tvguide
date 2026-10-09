@@ -6,6 +6,8 @@ struct GuideSidebar: View {
     @Binding var showingRegions: Bool
     @Binding var showingLiveSettings: Bool
     @Binding var showingNumberPad: Bool
+    @Binding var showingSearch: Bool
+    @Binding var showingReminders: Bool
     /// While the user pages back through the timeline the sidebar steps aside,
     /// so pressing left keeps scrolling time instead of jumping into the menu.
     let isLocked: Bool
@@ -18,6 +20,9 @@ struct GuideSidebar: View {
                     .foregroundStyle(Theme.accent)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 8)
+
+                Button { showingSearch = true } label: { Label("Search", systemImage: "magnifyingglass") }
+                    .buttonStyle(SidebarButtonStyle(isSelected: false))
 
                 ForEach(ChannelCategory.filters) { category in
                     Button {
@@ -33,6 +38,8 @@ struct GuideSidebar: View {
                     Label("Channel number", systemImage: "number")
                 }
                 .buttonStyle(SidebarButtonStyle(isSelected: false))
+                Button { showingReminders = true } label: { Label("Reminders", systemImage: "bell") }
+                    .buttonStyle(SidebarButtonStyle(isSelected: false))
                 Button { showingLiveSettings = true } label: {
                     Label("Live TV", systemImage: "antenna.radiowaves.left.and.right")
                 }
@@ -55,12 +62,17 @@ struct GuideSidebar: View {
                     Label(store.region.name, systemImage: "mappin.and.ellipse")
                 }
                 .buttonStyle(SidebarButtonStyle(isSelected: false))
+                Button { Task { await store.setIncludesSkyChannels(!store.includesSkyChannels) } } label: {
+                    Label(store.includesSkyChannels ? "Sky channels: On" : "Sky channels: Off",
+                          systemImage: store.includesSkyChannels ? "checkmark.circle.fill" : "circle")
+                }
+                .buttonStyle(SidebarButtonStyle(isSelected: store.includesSkyChannels))
                 Button { Task { await store.load(forceRefresh: true) } } label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(SidebarButtonStyle(isSelected: false))
             }
-            .padding(.leading, 60)
+            .padding(.leading, 50)
             .padding(.trailing, 10)
             .padding(.vertical, 10)
         }
@@ -102,7 +114,7 @@ struct SidebarButtonStyle: ButtonStyle {
         var body: some View {
             configuration.label
                 .labelStyle(SidebarLabelStyle())
-                .font(.system(size: 26, weight: isSelected || isFocused ? .semibold : .regular))
+                .font(.system(size: 24, weight: isSelected || isFocused ? .semibold : .regular))
                 .foregroundStyle(isFocused ? Theme.ink : (isSelected ? Theme.accent : .white.opacity(0.85)))
                 .padding(.horizontal, 20)
                 .padding(.vertical, 12)

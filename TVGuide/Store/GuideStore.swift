@@ -36,7 +36,12 @@ final class GuideStore {
     private(set) var streams: [String: URL] = [:]
     private var playlist: M3UPlaylist?
 
+    /// "I have Sky / NOW": adds Sky Cinema, Sky Sports and Sky entertainment channels.
+    private(set) var includesSkyChannels: Bool
     private let service: EPGService
+    private let skyService = SkyEPGService()
+    private var skyChannels: [Channel] = []
+    private var skySchedules: [String: [Programme]] = [:]
     private let defaults: UserDefaults
     private var clockTask: Task<Void, Never>?
     private var logos: [String: URL] = [:]
@@ -46,6 +51,7 @@ final class GuideStore {
         self.defaults = defaults
         self.region = Region.with(id: defaults.string(forKey: Keys.region))
         self.favourites = Set(defaults.stringArray(forKey: Keys.favourites) ?? [])
+        self.includesSkyChannels = defaults.bool(forKey: Keys.sky)
         self.windowStart = SampleSchedule.alignedDown(Date(), minutes: 30)
         self.channels = ChannelLineup.channels(for: region)
         self.liveSourceURL = defaults.string(forKey: Keys.liveSource).flatMap(URL.init(string:))
@@ -62,12 +68,14 @@ final class GuideStore {
 
     func load(forceRefresh: Bool = false) async {
         if schedules.isEmpty { state = .loading }
-        let ids = Set(channels.map(\.id))
+        let ids = Set(ChannelLineup.channels(for: region).map(\.id))
+        if includesSkyChannels { await loadSky() }
         do {
             apply(try await service.load(channelIDs: ids, forceRefresh: forceRefresh))
         } catch {
             if schedules.isEmpty || state == .ready(.sample) {
-                schedules = SampleSchedule.make(for: channels, around: now)
+                schedules = SampleSchedule.make(for: ChannelLineup.channels(for: region), around: now)
+                    .merging(skySchedules) { a, _ in a }
                 state = .ready(.sample)
             } else {
                 state = .failed(error.localizedDescription)
@@ -77,7 +85,7 @@ final class GuideStore {
 
     func apply(_ snapshot: EPGSnapshot) {
         logos = snapshot.logos
-        schedules = snapshot.programmes
+        schedules = snapshot.programmes.merging(skySchedules) { a, _ in a }
         applyLogos()
         state = .ready(snapshot.source)
     }
@@ -86,10 +94,38 @@ final class GuideStore {
         guard region != self.region else { return }
         self.region = region
         defaults.set(region.id, forKey: Keys.region)
-        channels = ChannelLineup.channels(for: region)
+        rebuildChannels()
+        await load()
+    }
+
+    func setIncludesSkyChannels(_ enabled: Bool) async {
+        guard enabled != includesSkyChannels else { return }
+        includesSkyChannels = enabled
+        defaults.set(enabled, forKey: Keys.sky)
+        if enabled {
+            await loadSky()
+        } else {
+            skyChannels = []
+            for key in skySchedules.keys { schedules[key] = nil }
+            skySchedules = [:]
+            rebuildChannels()
+        }
+    }
+
+    private func loadSky() async {
+        let used = Set(ChannelLineup.channels(for: region).map(\.number))
+        guard let result = try? await skyService.load(excludingNumbers: used, around: now) else { return }
+        skyChannels = result.channels
+        skySchedules = result.programmes
+        schedules.merge(result.programmes) { _, new in new }
+        rebuildChannels()
+    }
+
+    /// Free-to-air line-up for the region plus any Sky channels, in number order.
+    private func rebuildChannels() {
+        channels = (ChannelLineup.channels(for: region) + skyChannels).sorted { $0.number < $1.number }
         applyLogos()
         streams = playlist?.streams(for: channels) ?? [:]
-        await load()
     }
 
     private func applyLogos() {
@@ -201,6 +237,41 @@ final class GuideStore {
         return Array(list.filter { $0.start >= programme.end }.prefix(limit))
     }
 
+    // MARK: Search
+
+    struct SearchResults {
+        var channels: [Channel] = []
+        var onNow: [Programme] = []
+        var later: [Programme] = []
+        var isEmpty: Bool { channels.isEmpty && onNow.isEmpty && later.isEmpty }
+    }
+
+    /// Finds channels by name or number and programmes by title (words in any
+    /// order, ignoring case and accents). Past programmes are left out.
+    func search(_ query: String, limit: Int = 60) -> SearchResults {
+        let terms = query.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .split(separator: " ").map(String.init)
+        guard !terms.isEmpty else { return SearchResults() }
+        func matches(_ text: String) -> Bool {
+            let folded = text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            return terms.allSatisfy { folded.contains($0) }
+        }
+
+        var results = SearchResults()
+        results.channels = channels.filter { matches($0.name) || String($0.number) == query.trimmed }
+        var seen = Set<String>()
+        for channel in channels {
+            for programme in schedules[channel.id] ?? [] where programme.end > now && matches(programme.title) {
+                guard seen.insert(programme.id).inserted else { continue }
+                if programme.isOn(at: now) { results.onNow.append(programme) } else { results.later.append(programme) }
+            }
+        }
+        results.onNow.sort { (channel(id: $0.channelID)?.number ?? 0) < (channel(id: $1.channelID)?.number ?? 0) }
+        results.later.sort { $0.start < $1.start }
+        results.later = Array(results.later.prefix(limit))
+        return results
+    }
+
     // MARK: Timeline window
 
     var windowEnd: Date { windowStart.addingTimeInterval(Self.windowSpan) }
@@ -275,5 +346,6 @@ final class GuideStore {
         static let region = "guide.region"
         static let favourites = "guide.favourites"
         static let liveSource = "guide.liveSource"
+        static let sky = "guide.includesSky"
     }
 }

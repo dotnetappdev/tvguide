@@ -3,6 +3,7 @@ import SwiftUI
 /// Full screen programme page: artwork backdrop, synopsis and what's on later.
 struct ProgrammeDetailView: View {
     @Environment(GuideStore.self) private var store
+    @Environment(ReminderStore.self) private var reminders
     @Environment(\.dismiss) private var dismiss
     let highlight: Highlight
     let onWatch: (Channel) -> Void
@@ -76,6 +77,12 @@ struct ProgrammeDetailView: View {
                     Button { onWatch(channel) } label: {
                         Label(programme?.isOn(at: store.now) == true ? "Watch now" : "Watch \(channel.name)",
                               systemImage: "play.fill")
+                    }
+                    if let programme, programme.start > store.now, !programme.isPlaceholder {
+                        Button { reminders.toggle(programme, on: channel) } label: {
+                            Label(reminders.isSet(for: programme) ? "Reminder set" : "Remind me",
+                                  systemImage: reminders.isSet(for: programme) ? "bell.fill" : "bell")
+                        }
                     }
                     Button {
                         store.toggleFavourite(channel)

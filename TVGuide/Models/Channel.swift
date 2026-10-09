@@ -6,6 +6,7 @@ enum ChannelCategory: String, CaseIterable, Identifiable, Codable {
     case favourites
     case entertainment
     case films
+    case sport
     case factual
     case news
     case kids
@@ -18,6 +19,7 @@ enum ChannelCategory: String, CaseIterable, Identifiable, Codable {
         case .favourites: "Favourites"
         case .entertainment: "Entertainment"
         case .films: "Movies"
+        case .sport: "Sports"
         case .factual: "Documentaries"
         case .news: "News"
         case .kids: "Kids"
@@ -30,6 +32,7 @@ enum ChannelCategory: String, CaseIterable, Identifiable, Codable {
         case .favourites: "heart"
         case .entertainment: "sparkles.tv"
         case .films: "film"
+        case .sport: "sportscourt"
         case .factual: "globe.europe.africa"
         case .news: "newspaper"
         case .kids: "balloon.2"
@@ -37,7 +40,7 @@ enum ChannelCategory: String, CaseIterable, Identifiable, Codable {
     }
 
     /// Categories that a channel can belong to (excludes the virtual filters).
-    static var filters: [ChannelCategory] { [.all, .favourites, .entertainment, .films, .factual, .news, .kids] }
+    static var filters: [ChannelCategory] { [.all, .favourites, .entertainment, .films, .sport, .factual, .news, .kids] }
 }
 
 /// A broadcast channel in the Freeview line-up.
@@ -66,6 +69,10 @@ struct Channel: Identifiable, Hashable, Codable {
 
     /// Two or three letter monogram for the fallback logo.
     var monogram: String {
+        if name.hasPrefix("TNT Sports ") { return "TNT " + name.dropFirst(11) }
+        for prefix in ["Sky Sports ", "Sky Cinema ", "Sky "] where name.hasPrefix(prefix) {
+            return String(name.dropFirst(prefix.count))
+        }
         let words = name.split(separator: " ")
         if let first = words.first, first.count <= 4 { return String(first) }
         return words.prefix(2).compactMap { $0.first }.map(String.init).joined()

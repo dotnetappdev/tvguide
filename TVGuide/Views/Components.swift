@@ -8,7 +8,8 @@ struct Highlight: Identifiable, Equatable {
     var id: String { programme?.id ?? channel.id }
 }
 
-/// Channel logo on a soft light chip, falling back to a branded monogram.
+/// Channel logo on a dark navy chip (the logos are designed for dark
+/// backgrounds), falling back to a branded monogram.
 struct ChannelLogo: View {
     let channel: Channel
     var height: CGFloat = 44
@@ -22,7 +23,11 @@ struct ChannelLogo: View {
                     .padding(.vertical, height * 0.14)
                     .padding(.horizontal, height * 0.22)
                     .frame(width: height * 2, height: height)
-                    .background(.white.opacity(0.94), in: RoundedRectangle(cornerRadius: height * 0.22, style: .continuous))
+                    .background(Theme.ink, in: RoundedRectangle(cornerRadius: height * 0.22, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: height * 0.22, style: .continuous)
+                            .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                    }
             } else {
                 monogram
             }

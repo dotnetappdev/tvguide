@@ -119,11 +119,12 @@ final class XMLTVParser: NSObject, XMLParserDelegate {
         case "programme" where inProgramme:
             inProgramme = false
             guard let id = channelID, let start, let stop, stop > start else { return }
+            let (fullTitle, synopsis) = Self.rejoinTitle(title?.nilIfEmpty ?? "Untitled", desc?.nilIfEmpty)
             let programme = Programme(
                 channelID: id,
-                title: title?.nilIfEmpty ?? "Untitled",
+                title: fullTitle,
                 subtitle: subtitle?.nilIfEmpty,
-                synopsis: desc?.nilIfEmpty,
+                synopsis: synopsis,
                 start: start,
                 end: stop,
                 imageURL: icon,
@@ -182,6 +183,18 @@ final class XMLTVParser: NSObject, XMLParserDelegate {
         return era * 146_097 + doe - 719_468
     }
 
+    /// Long titles are split across fields in the feed: "George Clarke's Amazing..." with a
+    /// description of "...Spaces: First Home: George …". Moves the overflow back into the title.
+    static func rejoinTitle(_ title: String, _ desc: String?) -> (String, String?) {
+        guard title.hasSuffix("..."), let desc, desc.hasPrefix("..."),
+              let colon = desc.range(of: ": ") else { return (title, desc) }
+        let overflow = desc[desc.index(desc.startIndex, offsetBy: 3)..<colon.lowerBound]
+        guard !overflow.isEmpty, overflow.count < 60 else { return (title, desc) }
+        let head = title.dropLast(3)
+        let joiner = head.hasSuffix(" ") || overflow.first?.isPunctuation == true ? "" : " "
+        return (head + joiner + overflow, String(desc[colon.upperBound...]).nilIfEmpty)
+    }
+
     /// Normalises `S17E3` or xmltv_ns `16.2.0/1` into `S17 E3`.
     static func episodeLabel(onscreen: String?, xmltvNS: String?) -> String? {
         if let onscreen = onscreen?.nilIfEmpty {
@@ -189,6 +202,8 @@ final class XMLTVParser: NSObject, XMLParserDelegate {
             if let s = upper.firstIndex(of: "S"), let e = upper.firstIndex(of: "E"), s < e {
                 let season = upper[upper.index(after: s)..<e].trimmingCharacters(in: .whitespaces)
                 let episode = upper[upper.index(after: e)...].trimmingCharacters(in: .whitespaces)
+                // Some series are numbered by year (S2026E17); show those as plain episodes.
+                if let year = Int(season), year >= 1900, !episode.isEmpty { return "Ep \(episode)" }
                 if !season.isEmpty, !episode.isEmpty { return "S\(season) E\(episode)" }
                 if !episode.isEmpty { return "Ep \(episode)" }
             }

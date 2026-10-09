@@ -4,6 +4,7 @@ import SwiftUI
 /// fall inside the visible 2 hour window, sized by duration.
 struct GuideRow: View {
     @Environment(GuideStore.self) private var store
+    @Environment(ReminderStore.self) private var reminders
     let channel: Channel
     let gridWidth: CGFloat
     var focusedCell: FocusState<String?>.Binding
@@ -22,6 +23,7 @@ struct GuideRow: View {
                         ProgrammeCellLabel(programme: programme,
                                            continuesBefore: programme.start < store.windowStart,
                                            continuesAfter: programme.end > store.windowEnd,
+                                           hasReminder: reminders.isSet(for: programme),
                                            width: width(of: programme))
                     }
                     .buttonStyle(ProgrammeCellStyle(isOnNow: programme.isOn(at: store.now),
@@ -35,6 +37,12 @@ struct GuideRow: View {
                     .contextMenu {
                         Button { store.tune(channel) } label: {
                             Label("Watch \(channel.number) \(channel.name)", systemImage: "play.fill")
+                        }
+                        if programme.start > store.now, !programme.isPlaceholder {
+                            Button { reminders.toggle(programme, on: channel) } label: {
+                                Label(reminders.isSet(for: programme) ? "Cancel reminder" : "Set reminder",
+                                      systemImage: reminders.isSet(for: programme) ? "bell.slash" : "bell")
+                            }
                         }
                         Button { onInfo(programme) } label: { Label("Programme info", systemImage: "info.circle") }
                         Button {
@@ -143,6 +151,7 @@ private struct ProgrammeCellLabel: View {
     let programme: Programme
     let continuesBefore: Bool
     let continuesAfter: Bool
+    let hasReminder: Bool
     let width: CGFloat
 
     var body: some View {
@@ -165,6 +174,9 @@ private struct ProgrammeCellLabel: View {
                     }
                 }
                 Spacer(minLength: 0)
+                if hasReminder, width > 90 {
+                    Image(systemName: "bell.fill").font(.system(size: 16, weight: .bold))
+                }
                 if programme.isNew, width > 280 {
                     Text("NEW")
                         .font(.system(size: 14, weight: .heavy))

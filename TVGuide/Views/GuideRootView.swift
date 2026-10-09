@@ -3,12 +3,15 @@ import SwiftUI
 /// Top level screen: header, hero preview, sidebar and the scrolling guide.
 struct GuideRootView: View {
     @Environment(GuideStore.self) private var store
+    @Environment(ReminderStore.self) private var reminders
     @State private var highlight: Highlight?
     @State private var detail: Highlight?
     @State private var isGridFocused = false
     @State private var showingRegions = false
     @State private var showingLiveSettings = false
     @State private var showingNumberPad = false
+    @State private var showingSearch = false
+    @State private var showingReminders = false
 
     var body: some View {
         ZStack {
@@ -18,6 +21,9 @@ struct GuideRootView: View {
                 TopBar()
                     .sheet(isPresented: $showingRegions) {
                         RegionPicker().environment(store)
+                    }
+                    .fullScreenCover(isPresented: $showingReminders) {
+                        RemindersView().environment(store).environment(reminders)
                     }
                 HeroPanel(highlight: highlight ?? fallbackHighlight)
                     .frame(height: Theme.heroHeight)
@@ -29,6 +35,8 @@ struct GuideRootView: View {
                     GuideSidebar(showingRegions: $showingRegions,
                                  showingLiveSettings: $showingLiveSettings,
                                  showingNumberPad: $showingNumberPad,
+                                 showingSearch: $showingSearch,
+                                 showingReminders: $showingReminders,
                                  isLocked: isGridFocused && !store.isAtNow)
                         .frame(width: Theme.sidebarWidth)
                         .fullScreenCover(isPresented: $showingLiveSettings) {
@@ -38,10 +46,13 @@ struct GuideRootView: View {
                     GuideContent(highlight: $highlight,
                                  detail: $detail,
                                  isGridFocused: $isGridFocused)
+                        .fullScreenCover(isPresented: $showingSearch) {
+                            SearchView(onOpen: { detail = $0 }).environment(store).environment(reminders)
+                        }
                 }
             }
             .fullScreenCover(isPresented: isWatching) {
-                LivePlayerView().environment(store)
+                LivePlayerView().environment(store).environment(reminders)
             }
 
             if case .loading = store.state, store.schedules.isEmpty {
@@ -51,8 +62,15 @@ struct GuideRootView: View {
         .fullScreenCover(item: $detail) { item in
             ProgrammeDetailView(highlight: item, onWatch: tuneAfterDismiss)
                 .environment(store)
+                .environment(reminders)
         }
         .channelNumberEntry()
+        .reminderAlerts(isActive: store.tunedChannelID == nil && detail == nil && !isShowingOverlay)
+    }
+
+    /// Any full screen page on top of the guide (reminder alerts wait until it closes).
+    private var isShowingOverlay: Bool {
+        showingSearch || showingReminders || showingNumberPad || showingLiveSettings || showingRegions
     }
 
     /// Full screen live TV is shown whenever a channel is tuned.
@@ -94,7 +112,8 @@ private struct TopBar: View {
 
             Spacer()
 
-            StatusChip(state: store.state, region: store.region.name)
+            StatusChip(state: store.state,
+                       region: store.region.name + (store.includesSkyChannels ? " + Sky" : ""))
 
             Text(Fmt.time(store.now))
                 .font(.system(size: 36, weight: .semibold, design: .rounded))

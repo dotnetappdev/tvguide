@@ -32,6 +32,10 @@ struct Broadcaster: Equatable {
         if id.hasPrefix("5") {
             return Broadcaster(appName: "5", links: urls("my5://"))
         }
+        if id.hasPrefix("sky:") {
+            // Sky's channels stream in the NOW app on Apple TV (Sky Go isn't available).
+            return Broadcaster(appName: "NOW", links: urls("nowtv://"))
+        }
         if id.hasPrefix("UAnd") {
             return Broadcaster(appName: "U", links: urls("uktvplay://"))
         }

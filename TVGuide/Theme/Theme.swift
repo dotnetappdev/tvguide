@@ -17,7 +17,7 @@ enum Theme {
     static let secondaryText = Color(hex: "BCD0FF")
 
     // Layout metrics tuned for a 1920×1080 tvOS canvas.
-    static let sidebarWidth: CGFloat = 300
+    static let sidebarWidth: CGFloat = 340
     static let channelColumnWidth: CGFloat = 270
     static let rowHeight: CGFloat = 66
     static let rowSpacing: CGFloat = 8

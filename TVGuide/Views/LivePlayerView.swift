@@ -24,7 +24,7 @@ struct LivePlayerView: View {
 
             if let channel {
                 if stream != nil, playbackError == nil {
-                    PlayerLayerView(player: player).ignoresSafeArea()
+                    VideoSurface(player: player).ignoresSafeArea()
                     if isBuffering {
                         ProgressView().scaleEffect(1.6).frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
@@ -57,6 +57,7 @@ struct LivePlayerView: View {
             if player.timeControlStatus == .paused { player.play() } else { player.pause() }
         }
         .channelNumberEntry()
+        .reminderAlerts()
         .animation(.easeInOut(duration: 0.25), value: showBanner)
         .task(id: "\(store.tunedChannelID ?? "")|\(stream?.absoluteString ?? "")") { play(stream) }
         .onReceive(player.publisher(for: \.timeControlStatus)) { status in
@@ -239,7 +240,7 @@ private struct NoStreamPanel: View {
 
 /// Bare AVPlayerLayer host – no transport bar, so the remote's directional
 /// presses can be used for channel up / down.
-private struct PlayerLayerView: UIViewRepresentable {
+struct VideoSurface: UIViewRepresentable {
     let player: AVPlayer
 
     func makeUIView(context: Context) -> PlayerUIView {

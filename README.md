@@ -2,25 +2,15 @@
 
 A classic Sky style TV guide for **Apple TV (tvOS 17+)**, in Sky blue and yellow, built in SwiftUI for the UK free-to-air line-up. Channels use Sky style numbers (**101 BBC One, 102 BBC Two, 103 ITV1, 104 Channel 4, 105 5**…), and you can launch straight into live TV.
 
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ ▶ TV Guide   Friday 9 October            ● Freeview · London · 12:03   7:50pm │
-│                                                                              │
-│ [BBC TWO] 102  BBC Two                                   ░░░ artwork ░░░░░░░ │
-│ Impossible                                               ░░░░░░░░░░░░░░░░░░░ │
-│ 45m  HD  S  S5 E5   Started at 1:00pm  ━━━━━━──── 23m left                   │
-│ Quiz in which contestants must avoid giving impossible answers…              │
-├────────────┬─────────────────────────────────────────────────────────────────┤
-│ TV guide   │ On now                                                          │
-│ ◉ All      │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐              │
-│ ♡ Favs     │ │ BBC One  │ │ BBC Two  │ │ ITV1     │ │ Channel 4│  …           │
-│ ✦ Ent.     │ └──────────┘ └──────────┘ └──────────┘ └──────────┘              │
-│ 🎞 Movies   │ Today     │ 1:00pm      1:30pm      2:00pm      2:30pm           │
-│ 🌍 Docs     │ 101 BBC One│ News at One ┃ Sister Boniface Mysteries │ Escape…    │
-│ 📰 News     │ 102 BBC Two│ Impossible  ┃         │ Bargain Hunt     │ …        │
-│ 🎈 Kids     │ 103 ITV1   │ Loose Women ┃                   │ ITV News │ …     │
-└────────────┴─────────────────────────────────────────────────────────────────┘
-```
+![Guide](docs/screenshots/grid.jpg)
+
+| Sky Sports (Sky channels on) | Search with dictation | Reminder |
+| --- | --- | --- |
+| ![Sports](docs/screenshots/sports.jpg) | ![Search](docs/screenshots/search.jpg) | ![Reminder](docs/screenshots/reminder.jpg) |
+| **Live TV banner** | **Programme info** | **On now tiles** |
+| ![Player](docs/screenshots/player.jpg) | ![Info](docs/screenshots/info.jpg) | ![Tiles](docs/screenshots/guide.jpg) |
+
+*These are design mock-ups rendered from the app's layout with real listings, not device screenshots. Run the app in the Apple TV simulator for the real thing.*
 
 ## Watching live TV
 
@@ -40,6 +30,15 @@ Apple TV has no TV tuner, so live pictures need a stream:
 2. **The broadcaster's app (fallback).** If a channel has no stream, the player offers **Watch in BBC iPlayer / ITVX / Channel 4 / 5 / U**. These deep links aren't officially documented by the broadcasters, so they are best effort: the app tries a live-channel link first, then just opens the app.
 
 `TVGuide-Info.plist` allows plain `http` and local-network access so home servers work.
+
+## Search, reminders and Sky channels
+
+- **Search** (top of the sidebar) uses tvOS's own search screen: the A–Z keyboard row, or **hold the microphone button on the Siri Remote and say** a programme, channel name or number. Results show channels, what's on now (select to watch) and what's coming up across the week (select for info, press and hold to set a reminder).
+- **Live preview window** – the panel at the top has a little TV that follows focus as you move up and down the guide or along the tiles. With a live TV playlist set up it plays the channel muted (after a short pause so fast scrolling doesn't start lots of streams); otherwise it shows the programme's artwork.
+- **Reminders** – press and hold a future programme (or use **Remind me** on its info page). A bell shows in the grid. A minute before it starts you get an alert with **Watch** / **Dismiss**, in the guide or while watching another channel. **Reminders** in the sidebar lists and cancels them.
+  - Stored with **SwiftData**. The model is CloudKit compatible: add the *iCloud → CloudKit* capability in Xcode and reminders sync between your Apple TVs and survive tvOS clearing local storage (tvOS can purge local app data when space is low, so iCloud is recommended).
+  - tvOS notifications can only badge the app icon (no banners), so reminders also set the icon badge for programmes that start while the app is closed.
+- **Sky channels** – turn on **Sky channels** in the sidebar if you have Sky or NOW. Adds Sky Cinema (301–312), Sky Sports (401–416), TNT Sports and Sky Atlantic, Witness, Comedy, Crime, Documentaries, History, Nature and Sci-Fi with their real numbers and listings, plus a **Sports** filter. Listings come from the JSON guide behind sky.com/tv-guide – unofficial, so it may change. Watching them needs the NOW app (or a live TV playlist); there's no Sky Go app for Apple TV.
 
 ## Features
 
@@ -62,7 +61,7 @@ Listings come from the community maintained [Freeview-EPG](https://github.com/dp
 2. Stream-parses it, keeping only the ~60 TV channels in the line-up (≈0.6s on a desktop CPU).
 3. Falls back to the stale cache if the network is unavailable, and to generated sample listings if there is no cache at all (shown as "Sample listings · offline" in the header).
 
-Channel numbers follow Sky's layout (1xx entertainment, 3xx movies, 5xx news, 6xx kids) but are approximate – edit `TVGuide/Models/ChannelLineup.swift` to change numbering or add/remove channels (use the XMLTV ids from the feed).
+Channel numbers are the real Sky numbers (from Sky's London channel list), e.g. 101 BBC One, 115 BBC Three, 118 ITV2, 135 E4, 313 Film4, 503 BBC News, 607 CBBC – edit `TVGuide/Models/ChannelLineup.swift` to change numbering or add/remove channels (use the XMLTV ids from the feed).
 
 ## Building
 
@@ -87,6 +86,8 @@ TVGuide/
   Services/EPGService.swift      Download + disk cache of the Freeview feed
   Services/SampleSchedule.swift  Offline fallback listings
   Services/M3UPlaylist.swift     Live TV playlist parsing and channel matching
+  Services/SkyEPGService.swift   Sky Cinema / Sports / entertainment channels and listings
+  Store/ReminderStore.swift      SwiftData reminders, due checks, icon badge
   Models/Broadcaster.swift       Broadcaster app deep links (fallback)
   Store/GuideStore.swift         Observable state: listings, timeline window, favourites, region
   Theme/Theme.swift              Colours, metrics, UK date/time formatting
@@ -106,4 +107,6 @@ TVGuide/
 | Live TV | ↑ / ↓ | Channel up / down |
 | Live TV | Select | Show the now & next banner |
 | Grid | Play/Pause | Jump back to now |
+| Sidebar | Search | A–Z keyboard or hold the mic to dictate |
+| Grid (future programme) | Press & hold → Set reminder | Reminder alert a minute before it starts |
 | Anywhere | Menu | Back / close |
