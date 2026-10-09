@@ -10,7 +10,12 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<!-- Finds Channels DVR servers on the home network. -->
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_channels_dvr._tcp</string>
+	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>TV Guide connects to your live TV server on your home network to play channels.</string>
+	<string>TV Guide finds and connects to your live TV server (such as Channels DVR) on your home network to play channels and read the TV guide from your aerial.</string>
 </dict>
 </plist>

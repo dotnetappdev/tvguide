@@ -7,12 +7,15 @@ import FoundationXML
 struct XMLTVDocument {
     var programmes: [String: [Programme]] = [:]
     var logos: [String: URL] = [:]
+    /// Channel id → display name, e.g. "BBCOneLondonHD.uk" → "BBC One London HD".
+    var names: [String: String] = [:]
 }
 
 /// Streaming XMLTV parser. Only keeps listings for the requested channel ids,
 /// which keeps memory low even though the full UK feed is ~20 MB.
 final class XMLTVParser: NSObject, XMLParserDelegate {
-    private let wanted: Set<String>
+    /// `nil` keeps every channel.
+    private let wanted: Set<String>?
     private var document = XMLTVDocument()
 
     // Current element state.
@@ -31,11 +34,11 @@ final class XMLTVParser: NSObject, XMLParserDelegate {
     private var episodeSystem: String?
     private var isNew = false
 
-    init(channelIDs: Set<String>) {
+    init(channelIDs: Set<String>?) {
         self.wanted = channelIDs
     }
 
-    static func parse(data: Data, channelIDs: Set<String>) -> XMLTVDocument {
+    static func parse(data: Data, channelIDs: Set<String>?) -> XMLTVDocument {
         let delegate = XMLTVParser(channelIDs: channelIDs)
         let parser = XMLParser(data: data)
         parser.delegate = delegate
@@ -71,9 +74,9 @@ final class XMLTVParser: NSObject, XMLParserDelegate {
         switch element {
         case "channel":
             channelID = attributes["id"]
-            inChannel = channelID.map(wanted.contains) ?? false
+            inChannel = channelID.map(isWanted) ?? false
         case "programme":
-            guard let id = attributes["channel"], wanted.contains(id) else {
+            guard let id = attributes["channel"], isWanted(id) else {
                 inProgramme = false
                 return
             }
@@ -99,12 +102,14 @@ final class XMLTVParser: NSObject, XMLParserDelegate {
     }
 
     func parser(_ parser: XMLParser, foundCharacters string: String) {
-        if inProgramme { text += string }
+        if inProgramme || inChannel { text += string }
     }
 
     func parser(_ parser: XMLParser, didEndElement element: String, namespaceURI: String?,
                 qualifiedName: String?) {
         switch element {
+        case "display-name" where inChannel:
+            if let id = channelID, document.names[id] == nil { document.names[id] = text.trimmed }
         case "channel":
             inChannel = false
         case "title" where inProgramme:
@@ -137,6 +142,22 @@ final class XMLTVParser: NSObject, XMLParserDelegate {
     }
 
     // MARK: Helpers
+
+    private func isWanted(_ id: String) -> Bool { wanted?.contains(id) ?? true }
+
+    /// Parses a third-party XMLTV guide (e.g. one advertised by a live TV
+    /// playlist) whose channel ids differ from ours, matching channels by name.
+    static func parseMatchingNames(data: Data, channels: [Channel]) -> [String: [Programme]] {
+        let document = parse(data: data, channelIDs: nil)
+        let matcher = ChannelMatcher(channels: channels)
+        var result: [String: [Programme]] = [:]
+        for (id, programmes) in document.programmes {
+            guard let name = document.names[id], let channel = matcher.match(name: name),
+                  result[channel.id] == nil else { continue }
+            result[channel.id] = programmes.map { $0.reassigned(to: channel.id) }
+        }
+        return result
+    }
 
     /// Parses XMLTV timestamps such as `20261008220000 +0100`.
     static func date(from string: String) -> Date? {

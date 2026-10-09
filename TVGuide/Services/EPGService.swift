@@ -7,6 +7,8 @@ import FoundationNetworking
 enum EPGSource: Equatable {
     case live(updated: Date)
     case cached(updated: Date)
+    /// Guide data read from the aerial by the viewer's tuner (Channels DVR / playlist XMLTV).
+    case tuner
     case sample
 }
 

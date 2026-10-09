@@ -146,6 +146,7 @@ private struct StatusChip: View {
         switch state {
         case .loading: "Loading listings…"
         case .ready(.live(let date)), .ready(.cached(let date)): "Freeview · \(region) · updated \(Fmt.time(date))"
+        case .ready(.tuner): "Guide from your tuner · \(region)"
         case .ready(.sample): "Sample listings · offline"
         case .failed: "Couldn't refresh listings"
         }

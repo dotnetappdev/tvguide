@@ -209,6 +209,17 @@ private struct NoStreamPanel: View {
     let message: String?
     let openApp: () -> Void
 
+    private var explanation: String {
+        if let error { return error }
+        if !hasLiveSource {
+            return "Connect a TV tuner under Live TV in the guide's sidebar (an HDHomeRun with Channels DVR, or a Jellyfin, TVHeadend or IPTV playlist) to watch here."
+        }
+        if channel.id.hasPrefix("sky:") {
+            return "Sky channels come by satellite, so a Freeview tuner can't receive them. Watch them in the NOW app."
+        }
+        return "Your live TV source doesn't include this channel."
+    }
+
     var body: some View {
         ZStack {
             GuideBackground()
@@ -216,9 +227,7 @@ private struct NoStreamPanel: View {
                 ChannelLogo(channel: channel, height: 90)
                 Text(error == nil ? "\(channel.name) isn't streaming in TV Guide" : "Couldn't play \(channel.name)")
                     .font(.system(size: 44, weight: .bold))
-                Text(error ?? (hasLiveSource
-                     ? "Your live TV playlist doesn't include this channel."
-                     : "Add a live TV playlist (Channels DVR, Jellyfin, TVHeadend or IPTV) under Live TV in the guide's sidebar to watch here."))
+                Text(explanation)
                     .font(.system(size: 26))
                     .foregroundStyle(Theme.secondaryText)
                     .multilineTextAlignment(.center)

@@ -3,8 +3,9 @@ import Foundation
 import FoundationNetworking
 #endif
 
-/// Listings for Sky's pay channels (Sky Cinema, Sky Sports, TNT Sports and the
-/// Sky entertainment channels) from the JSON guide behind sky.com/tv-guide.
+/// The Sky channel line-up and listings (Sky Cinema, Sky Sports, TNT Sports, Sky
+/// entertainment, documentaries, kids, news …) from the JSON guide behind
+/// sky.com/tv-guide.
 ///
 /// This is the same unauthenticated feed Sky's website uses; it isn't a
 /// documented public API, so it may change without notice.
@@ -25,6 +26,7 @@ actor SkyEPGService {
         let c: String
         let t: String
         let sg: Int?
+        let adult: Bool?
     }
 
     private struct ServicesResponse: Decodable { let services: [SkyService] }
@@ -47,7 +49,7 @@ actor SkyEPGService {
     /// Loads Sky pay channels whose numbers aren't already used, plus two days of listings.
     func load(excludingNumbers used: Set<Int>, around date: Date = Date()) async throws -> (channels: [Channel], programmes: [String: [Programme]]) {
         let services = try await services()
-        let channels = Self.payChannels(from: services, excluding: used)
+        let channels = Self.skyChannels(from: services, excluding: used)
         guard !channels.isEmpty else { return ([], [:]) }
 
         var programmes: [String: [Programme]] = [:]
@@ -81,29 +83,45 @@ actor SkyEPGService {
 
     // MARK: Mapping (static so it can be unit tested)
 
-    static func payChannels(from services: [SkyService], excluding used: Set<Int>) -> [Channel] {
+    /// Every Sky TV channel whose number isn't already used by the free line-up:
+    /// entertainment and documentaries (1xx), Sky Cinema and other film
+    /// channels (3xx), music (35x), sport (4xx), news (5xx) and kids (6xx).
+    /// Leaves out radio, adult, +1, pay-per-view, shopping, religious and
+    /// duplicate SD channels.
+    static func skyChannels(from services: [SkyService], excluding used: Set<Int>) -> [Channel] {
         var numbers = used
         var result: [Channel] = []
         for service in services {
-            guard let number = Int(service.c), !numbers.contains(number) else { continue }
-            if service.t.contains("+1") || service.t.contains("BoxOff") { continue }
-            let name = prettyName(service.t, number: number)
-            let category: ChannelCategory
-            switch number {
-            case 106...199 where name.hasPrefix("Sky"):
-                category = ["History", "Nature", "Documentaries"].contains(where: name.contains) ? .factual : .entertainment
-            case 301...312 where service.sg == 6:
-                category = .films
-            case 401...416:
-                category = .sport
-            default:
-                continue
-            }
+            // Radio numbers are written "0101" etc. and share the TV range once parsed.
+            guard !service.c.hasPrefix("0"), service.sg != 4, service.sg != 0,
+                  service.adult != true, let number = Int(service.c), !numbers.contains(number) else { continue }
+            let raw = service.t
+            if raw.contains("+1") || raw.contains("BoxOff") || raw.hasSuffix("+") { continue }
+            guard let category = category(number: number, group: service.sg, name: raw) else { continue }
             numbers.insert(number)
-            result.append(Channel(number, name, id: "sky:\(service.sid)", category,
-                                  hd: service.t.hasSuffix("HD"), brand: brand(for: category)))
+            result.append(Channel(number, prettyName(raw, number: number), id: "sky:\(service.sid)", category,
+                                  hd: raw.hasSuffix("HD"), brand: brand(for: category)))
         }
-        return result
+        return result.sorted { $0.number < $1.number }
+    }
+
+    private static let factualWords = ["Docmntrs", "History", "Nature", "Discovery", "Disc.", "Nat Geo", "NatGeo",
+                                       "Animal", "Crime+Inv", "ID", "PBS", "Travelxp", "Science", "Eden"]
+
+    private static func category(number: Int, group: Int?, name: String) -> ChannelCategory? {
+        switch number {
+        case 106...299:
+            let isFactual = factualWords.contains { word in
+                word.count <= 3 ? name == word || name.hasPrefix(word + " ") : name.contains(word)
+            }
+            return isFactual ? .factual : .entertainment
+        case 301...349: return .films
+        case 350...379: return .entertainment // music
+        case 401...489: return .sport
+        case 501...579: return .news
+        case 601...639: return .kids
+        default: return nil
+        }
     }
 
     /// Expands Sky's abbreviated names, e.g. "SkySpMainEvHD" → "Sky Sports Main Event".
@@ -112,12 +130,18 @@ actor SkyEPGService {
         if name.hasSuffix("HD") { name = String(name.dropLast(2)) }
         name = name.trimmed
         let replacements: [(String, String)] = [
-            ("SkySp", "Sky Sports "), ("MainEv", "Main Event"), ("F'ball", "Football"), ("PL", "Premier League"),
+            ("SkySp", "Sky Sports "), ("MainEv", "Main Event"), ("F'ball", "Football"),
+            ("ComedyCent", "Comedy Central"), ("ComedyXtra", "Comedy Central Extra"), ("Disc.", "Discovery "),
+            ("NatGeoWild", "Nat Geo Wild"), ("Crime+Inv", "Crime+Investigation"), ("Cartoon Net", "Cartoon Network"),
+            ("TRUE CRIME X", "True Crime Xtra"), ("TRUE CRIME", "True Crime"), ("NOW ROCK", "Now Rock"),
+            ("BBCScotland", "BBC Scotland"), ("U&DaveJaVu", "U&Dave ja vu"), ("Great!Christmas", "Great! Christmas"),
+            ("LEGEND XTRA", "Legend Xtra"),
             ("TNTSports", "TNT Sports "), ("SkyPremiere", "Sky Cinema Premiere"), ("SkyAnimation", "Sky Cinema Animation"),
             ("SkyDocmntrs", "Sky Documentaries"), ("Disney+Cine", "Disney+ Cinema"),
         ]
         for (from, to) in replacements { name = name.replacingOccurrences(of: from, with: to) }
-        name = name.replacingOccurrences(of: "  ", with: " ").replacingOccurrences(of: "Sports +", with: "Sports+").trimmed
+        name = name.replacingOccurrences(of: "  ", with: " ").replacingOccurrences(of: "Sports +", with: "Sports+")
+            .replacingOccurrences(of: "Sports PL", with: "Sports Premier League").trimmed
         // Sky Cinema channels are listed as "Sky Action", "Sky Greats" … in the 3xx range.
         if (301...312).contains(number), name.hasPrefix("Sky "), !name.hasPrefix("Sky Cinema") {
             name = "Sky Cinema " + name.dropFirst(4)

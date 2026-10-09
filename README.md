@@ -20,16 +20,19 @@ A classic Sky style TV guide for **Apple TV (tvOS 17+)**, in Sky blue and yellow
 
 ### Where the pictures come from
 
-Apple TV has no TV tuner, so live pictures need a stream:
+Apple TV has no aerial input, so live pictures need a tuner on your home network. Set it up under **Live TV** in the sidebar:
 
-1. **Your own live TV source (recommended).** Under **Live TV** in the sidebar enter an M3U playlist of HLS streams, e.g. from
-   - Channels DVR with an HDHomeRun Freeview tuner: `http://<server>:8089/devices/ANY/channels.m3u?format=hls`
-   - Jellyfin / Plex / TVHeadend live TV, or an IPTV provider you subscribe to.
+1. **HDHomeRun + Channels DVR (recommended).** An HDHomeRun Freeview tuner plugged into your aerial and router, plus [Channels DVR](https://getchannels.com) running on a Mac, PC or NAS. The app **finds Channels DVR servers automatically** (Bonjour), or you can type the address (e.g. `192.168.1.20`, port 8089 by default). It then:
+   - plays every channel the tuner receives, using Channels DVR's HLS streams (`/devices/ANY/channels.m3u?format=hls`);
+   - reads the **guide from your aerial** via Channels DVR (`/devices/ANY/guide`), which fills in any channel the internet listings miss and takes over completely if the internet listings can't be downloaded.
 
-   Channels are matched to the guide by `tvg-id` (the XMLTV ids used by this app, e.g. `BBCOneLondonHD.uk`), then by channel name. Streams play in-app with AVPlayer, so they must be HLS (raw MPEG-TS from a tuner won't play).
-2. **The broadcaster's app (fallback).** If a channel has no stream, the player offers **Watch in BBC iPlayer / ITVX / Channel 4 / 5 / U**. These deep links aren't officially documented by the broadcasters, so they are best effort: the app tries a live-channel link first, then just opens the app.
+   The app also spots HDHomeRun tuners on your network. On their own they stream MPEG-TS, which Apple TV can't play, so the app tells you to add them to Channels DVR.
+2. **Any M3U playlist of HLS streams** – Jellyfin, Plex, TVHeadend or an IPTV service. Channels are matched to the guide by `tvg-id` or by name (tuner names like "BBC ONE Lon HD" or "ITV1 +1" are understood). If the playlist header links an XMLTV guide (`url-tvg`), it's used as backup listings too.
+3. **The broadcaster's app (fallback).** If a channel has no stream, the player offers **Watch in BBC iPlayer / ITVX / Channel 4 / 5 / U / NOW**. These deep links aren't officially documented, so they're best effort.
 
-`TVGuide-Info.plist` allows plain `http` and local-network access so home servers work.
+Sky channels arrive by satellite, so a Freeview tuner can't receive them; watch those in the NOW app or via an IPTV playlist that carries them.
+
+`TVGuide-Info.plist` allows plain `http`, local-network access and Bonjour browsing for `_channels_dvr._tcp`.
 
 ## Search, reminders and Sky channels
 
@@ -38,7 +41,7 @@ Apple TV has no TV tuner, so live pictures need a stream:
 - **Reminders** – press and hold a future programme (or use **Remind me** on its info page). A bell shows in the grid. A minute before it starts you get an alert with **Watch** / **Dismiss**, in the guide or while watching another channel. **Reminders** in the sidebar lists and cancels them.
   - Stored with **SwiftData**. The model is CloudKit compatible: add the *iCloud → CloudKit* capability in Xcode and reminders sync between your Apple TVs and survive tvOS clearing local storage (tvOS can purge local app data when space is low, so iCloud is recommended).
   - tvOS notifications can only badge the app icon (no banners), so reminders also set the icon badge for programmes that start while the app is closed.
-- **Sky channels** – turn on **Sky channels** in the sidebar if you have Sky or NOW. Adds Sky Cinema (301–312), Sky Sports (401–416), TNT Sports and Sky Atlantic, Witness, Comedy, Crime, Documentaries, History, Nature and Sci-Fi with their real numbers and listings, plus a **Sports** filter. Listings come from the JSON guide behind sky.com/tv-guide – unofficial, so it may change. Watching them needs the NOW app (or a live TV playlist); there's no Sky Go app for Apple TV.
+- **Sky channels** – on by default (switch off with **Sky channels** in the sidebar). Adds the whole Sky TV line-up that isn't on Freeview, with real Sky numbers and listings – about 90 channels: Sky One, Witness, Atlantic, Comedy, Crime, Documentaries, History, Nature and Sci-Fi, Comedy Central, Discovery, Nat Geo, MTV and the music channels, **Sky Cinema 301–312**, **Sky Sports 401–416**, TNT Sports, MUTV, LFCTV, Racing TV, international news and the kids channels (Cartoon Network, Nickelodeon, Nick Jr., Disney Jr, Sky Kids …), plus a **Sports** filter. Radio, adult, +1, pay-per-view, shopping and religious channels are left out. Listings come from the JSON guide behind sky.com/tv-guide – unofficial, so it may change.
 
 ## Features
 
@@ -86,7 +89,10 @@ TVGuide/
   Services/EPGService.swift      Download + disk cache of the Freeview feed
   Services/SampleSchedule.swift  Offline fallback listings
   Services/M3UPlaylist.swift     Live TV playlist parsing and channel matching
-  Services/SkyEPGService.swift   Sky Cinema / Sports / entertainment channels and listings
+  Services/SkyEPGService.swift   Sky channel line-up and listings
+  Services/ChannelsDVR.swift     Channels DVR client: HLS playlist and guide from the aerial
+  Services/LiveTVDiscovery.swift Finds Channels DVR servers (Bonjour) and HDHomeRun tuners
+  Services/ChannelMatcher.swift  Matches tuner/playlist channel names to the guide
   Store/ReminderStore.swift      SwiftData reminders, due checks, icon badge
   Models/Broadcaster.swift       Broadcaster app deep links (fallback)
   Store/GuideStore.swift         Observable state: listings, timeline window, favourites, region

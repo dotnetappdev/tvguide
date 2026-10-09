@@ -38,7 +38,11 @@ struct M3UPlaylist {
                 pending = nil
             }
         }
-        return M3UPlaylist(entries: entries)
+        let header = text.prefix { $0 != "\n" && $0 != "\r" }
+        let headerAttributes = header.hasPrefix("#EXTM3U") ? attributes(String(header)) : [:]
+        let guide = (headerAttributes["url-tvg"] ?? headerAttributes["x-tvg-url"])?
+            .split(separator: ",").first.flatMap { URL(string: String($0).trimmed) }
+        return M3UPlaylist(entries: entries, guideURL: guide)
     }
 
     static func load(from url: URL, session: URLSession = .shared) async throws -> M3UPlaylist {
@@ -50,38 +54,24 @@ struct M3UPlaylist {
     }
 
     /// Matches playlist entries to guide channels: first by XMLTV id, then by
-    /// channel name, then (for unnamed entries) by channel number.
+    /// channel name (see `ChannelMatcher`), then (for unnamed entries) by number.
     func streams(for channels: [Channel]) -> [String: URL] {
-        var byID: [String: URL] = [:], byName: [String: URL] = [:], byNumber: [Int: URL] = [:]
-        for entry in entries {
-            if let id = entry.tvgID?.lowercased(), byID[id] == nil { byID[id] = entry.url }
-            for name in [entry.tvgName, entry.name].compactMap({ $0 }) {
-                let key = Self.normalise(name)
-                if !key.isEmpty, byName[key] == nil { byName[key] = entry.url }
-            }
-            // Numbering differs between providers, so only trust it for unnamed entries.
-            if let number = entry.number, entry.tvgName == nil, entry.name.isEmpty, byNumber[number] == nil {
-                byNumber[number] = entry.url
-            }
-        }
-
+        let ids = Dictionary(channels.map { ($0.id.lowercased(), $0) }, uniquingKeysWith: { a, _ in a })
+        let numbers = Dictionary(channels.map { ($0.number, $0) }, uniquingKeysWith: { a, _ in a })
+        let matcher = ChannelMatcher(channels: channels)
         var result: [String: URL] = [:]
-        for channel in channels {
-            if let url = byID[channel.id.lowercased()] ?? byName[Self.normalise(channel.name)] ?? byNumber[channel.number] {
-                result[channel.id] = url
-            }
+        for entry in entries {
+            let channel = entry.tvgID.flatMap { ids[$0.lowercased()] }
+                ?? [entry.tvgName, entry.name].compactMap { $0?.nilIfEmpty }.lazy.compactMap(matcher.match(name:)).first
+                // Numbering differs between providers, so only trust it for unnamed entries.
+                ?? (entry.tvgName == nil && entry.name.isEmpty ? entry.number.flatMap { numbers[$0] } : nil)
+            if let channel, result[channel.id] == nil { result[channel.id] = entry.url }
         }
         return result
     }
 
-    /// "BBC One HD", "bbc one", "BBC ONE London HD" → "bbcone"-style keys.
-    static func normalise(_ name: String) -> String {
-        var key = name.lowercased()
-        for noise in [" hd", " uhd", " london", " (uk)", " uk"] where key.hasSuffix(noise) {
-            key.removeLast(noise.count)
-        }
-        return key.filter { $0.isLetter || $0.isNumber || $0 == "+" }
-    }
+    /// The XMLTV guide address advertised in the playlist header (`url-tvg` / `x-tvg-url`), if any.
+    var guideURL: URL?
 
     private static func displayName(_ line: String) -> String {
         // The name follows the last comma that is outside quotes.

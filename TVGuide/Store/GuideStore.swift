@@ -1,5 +1,8 @@
 import Foundation
 import Observation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Single source of truth for the guide: channel line-up, listings, the
 /// visible timeline window and user preferences.
@@ -35,6 +38,10 @@ final class GuideStore {
     private(set) var liveSourceStatus: String?
     private(set) var streams: [String: URL] = [:]
     private var playlist: M3UPlaylist?
+    /// Channels DVR server used for live TV and as a backup guide from the aerial.
+    private(set) var channelsServer: URL?
+    private var tunerSchedules: [String: [Programme]] = [:]
+    private var internetSchedules: [String: [Programme]] = [:]
 
     /// "I have Sky / NOW": adds Sky Cinema, Sky Sports and Sky entertainment channels.
     private(set) var includesSkyChannels: Bool
@@ -51,10 +58,12 @@ final class GuideStore {
         self.defaults = defaults
         self.region = Region.with(id: defaults.string(forKey: Keys.region))
         self.favourites = Set(defaults.stringArray(forKey: Keys.favourites) ?? [])
-        self.includesSkyChannels = defaults.bool(forKey: Keys.sky)
+        // Sky channels are on unless the viewer has switched them off.
+        self.includesSkyChannels = defaults.object(forKey: Keys.sky) as? Bool ?? true
         self.windowStart = SampleSchedule.alignedDown(Date(), minutes: 30)
         self.channels = ChannelLineup.channels(for: region)
         self.liveSourceURL = defaults.string(forKey: Keys.liveSource).flatMap(URL.init(string:))
+        self.channelsServer = defaults.string(forKey: Keys.channelsServer).flatMap(URL.init(string:))
     }
 
     // MARK: Loading
@@ -69,25 +78,43 @@ final class GuideStore {
     func load(forceRefresh: Bool = false) async {
         if schedules.isEmpty { state = .loading }
         let ids = Set(ChannelLineup.channels(for: region).map(\.id))
-        if includesSkyChannels { await loadSky() }
+        // Sky listings download alongside the Freeview feed.
+        async let sky: Void = loadSkyIfEnabled()
         do {
             apply(try await service.load(channelIDs: ids, forceRefresh: forceRefresh))
         } catch {
-            if schedules.isEmpty || state == .ready(.sample) {
-                schedules = SampleSchedule.make(for: ChannelLineup.channels(for: region), around: now)
-                    .merging(skySchedules) { a, _ in a }
+            if !tunerSchedules.isEmpty {
+                // No internet listings: the tuner's guide from the aerial covers the free channels.
+                internetSchedules = [:]
+                assembleSchedules()
+                state = .ready(.tuner)
+            } else if internetSchedules.isEmpty || state == .ready(.sample) {
+                internetSchedules = SampleSchedule.make(for: ChannelLineup.channels(for: region), around: now)
+                assembleSchedules()
                 state = .ready(.sample)
             } else {
                 state = .failed(error.localizedDescription)
             }
         }
+        await sky
     }
 
     func apply(_ snapshot: EPGSnapshot) {
         logos = snapshot.logos
-        schedules = snapshot.programmes.merging(skySchedules) { a, _ in a }
+        internetSchedules = snapshot.programmes
+        assembleSchedules()
         applyLogos()
         state = .ready(snapshot.source)
+    }
+
+    /// Internet listings first, then Sky's, then the tuner's guide for any
+    /// channel still without listings.
+    private func assembleSchedules() {
+        var merged = internetSchedules.merging(skySchedules) { a, _ in a }
+        for (id, listings) in tunerSchedules where merged[id]?.isEmpty ?? true {
+            merged[id] = listings
+        }
+        schedules = merged
     }
 
     func setRegion(_ region: Region) async {
@@ -106,10 +133,14 @@ final class GuideStore {
             await loadSky()
         } else {
             skyChannels = []
-            for key in skySchedules.keys { schedules[key] = nil }
             skySchedules = [:]
+            assembleSchedules()
             rebuildChannels()
         }
+    }
+
+    private func loadSkyIfEnabled() async {
+        if includesSkyChannels { await loadSky() }
     }
 
     private func loadSky() async {
@@ -117,7 +148,7 @@ final class GuideStore {
         guard let result = try? await skyService.load(excludingNumbers: used, around: now) else { return }
         skyChannels = result.channels
         skySchedules = result.programmes
-        schedules.merge(result.programmes) { _, new in new }
+        assembleSchedules()
         rebuildChannels()
     }
 
@@ -164,6 +195,20 @@ final class GuideStore {
         await loadLiveSource()
     }
 
+    /// Uses a Channels DVR server for live TV: its HLS playlist for streams and
+    /// its guide (read from the aerial) as backup listings. Pass `nil` to remove.
+    func setChannelsServer(_ server: URL?) async throws {
+        if let server {
+            try await ChannelsDVRClient(server: server).checkReachable()
+        }
+        channelsServer = server
+        defaults.set(server?.absoluteString, forKey: Keys.channelsServer)
+        liveSourceURL = server.map { ChannelsDVRClient(server: $0).playlistURL }
+        defaults.set(liveSourceURL?.absoluteString, forKey: Keys.liveSource)
+        if server == nil { tunerSchedules = [:]; assembleSchedules() }
+        await loadLiveSource()
+    }
+
     func loadLiveSource() async {
         guard let url = liveSourceURL else {
             playlist = nil
@@ -175,9 +220,34 @@ final class GuideStore {
             let playlist = try await M3UPlaylist.load(from: url)
             self.playlist = playlist
             streams = playlist.streams(for: channels)
-            liveSourceStatus = "\(streams.count) of \(channels.count) channels available"
+            liveSourceStatus = "\(streams.count) of \(channels.count) channels can play live"
         } catch {
-            liveSourceStatus = "Couldn't load playlist: \(error.localizedDescription)"
+            liveSourceStatus = "Couldn't reach your live TV source: \(error.localizedDescription)"
+        }
+        await loadTunerGuide()
+    }
+
+    /// Backup listings from the tuner: Channels DVR's guide, or the XMLTV guide
+    /// a playlist advertises in its header.
+    private func loadTunerGuide() async {
+        var listings: [String: [Programme]] = [:]
+        if let server = channelsServer,
+           let guide = try? await ChannelsDVRClient(server: server).guide(from: now.addingTimeInterval(-3600),
+                                                                          duration: 24 * 3600) {
+            listings = ChannelsDVRClient.programmes(from: guide, matching: channels)
+        } else if let guideURL = playlist?.guideURL,
+                  let (data, _) = try? await URLSession.shared.data(from: guideURL) {
+            listings = XMLTVParser.parseMatchingNames(data: data, channels: channels)
+        }
+        tunerSchedules = listings
+        if !listings.isEmpty, state == .ready(.sample) {
+            // Real listings from the aerial beat generated sample ones.
+            internetSchedules = [:]
+            state = .ready(.tuner)
+        }
+        assembleSchedules()
+        if !listings.isEmpty, let status = liveSourceStatus {
+            liveSourceStatus = status + " · guide for \(listings.count) channels from your tuner"
         }
     }
 
@@ -347,5 +417,6 @@ final class GuideStore {
         static let favourites = "guide.favourites"
         static let liveSource = "guide.liveSource"
         static let sky = "guide.includesSky"
+        static let channelsServer = "guide.channelsServer"
     }
 }

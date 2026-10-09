@@ -44,6 +44,12 @@ struct Programme: Identifiable, Hashable {
 
     func overlaps(_ start: Date, _ end: Date) -> Bool { self.start < end && self.end > start }
 
+    /// The same listing filed under another channel id.
+    func reassigned(to channelID: String) -> Programme {
+        Programme(channelID: channelID, title: title, subtitle: subtitle, synopsis: synopsis, start: start, end: end,
+                  imageURL: imageURL, episode: episode, isNew: isNew, isPlaceholder: isPlaceholder)
+    }
+
     static func placeholder(channelID: String, start: Date, end: Date) -> Programme {
         Programme(channelID: channelID, title: "No information available",
                   start: start, end: end, isPlaceholder: true)
