@@ -7,6 +7,8 @@ A classic Sky style TV guide for **Apple TV (tvOS 17+)**, in Sky blue and yellow
 | Sky Sports (Sky channels on) | Search with dictation | Reminder |
 | --- | --- | --- |
 | ![Sports](docs/screenshots/sports.jpg) | ![Search](docs/screenshots/search.jpg) | ![Reminder](docs/screenshots/reminder.jpg) |
+| **Radio guide (0101…)** | **Radio now playing** | **Live TV setup** |
+| ![Radio](docs/screenshots/radio.jpg) | ![Radio now playing](docs/screenshots/radioplay.jpg) | ![Live TV](docs/screenshots/livetv.jpg) |
 | **Live TV banner** | **Programme info** | **On now tiles** |
 | ![Player](docs/screenshots/player.jpg) | ![Info](docs/screenshots/info.jpg) | ![Tiles](docs/screenshots/guide.jpg) |
 
