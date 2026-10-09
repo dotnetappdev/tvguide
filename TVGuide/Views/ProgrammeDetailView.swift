@@ -5,6 +5,7 @@ struct ProgrammeDetailView: View {
     @Environment(GuideStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     let highlight: Highlight
+    let onWatch: (Channel) -> Void
 
     var body: some View {
         let channel = highlight.channel
@@ -29,7 +30,11 @@ struct ProgrammeDetailView: View {
             VStack(alignment: .leading, spacing: 22) {
                 HStack(spacing: 18) {
                     ChannelLogo(channel: channel, height: 54)
-                    Text("\(channel.number)  \(channel.name)")
+                    Text("\(channel.number)")
+                        .font(.system(size: 34, weight: .heavy))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.accent)
+                    Text(channel.name)
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundStyle(Theme.secondaryText)
                 }
@@ -68,6 +73,10 @@ struct ProgrammeDetailView: View {
                 }
 
                 HStack(spacing: 30) {
+                    Button { onWatch(channel) } label: {
+                        Label(programme?.isOn(at: store.now) == true ? "Watch now" : "Watch \(channel.name)",
+                              systemImage: "play.fill")
+                    }
                     Button {
                         store.toggleFavourite(channel)
                     } label: {

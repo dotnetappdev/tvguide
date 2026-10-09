@@ -1,16 +1,20 @@
 import SwiftUI
 
+/// Classic Sky guide palette: deep royal blue with Sky yellow highlights.
 enum Theme {
-    static let backgroundTop = Color(hex: "060F2B")
-    static let backgroundBottom = Color(hex: "0B2670")
-    static let glow = Color(hex: "2F6BFF")
-    static let accent = Color(hex: "4FC3F7")
-    static let live = Color(hex: "FF3B5C")
-    static let ink = Color(hex: "0A1C4F")
-    static let panel = Color.white.opacity(0.06)
-    static let cell = Color.white.opacity(0.09)
-    static let cellNow = Color(hex: "4FC3F7").opacity(0.20)
-    static let secondaryText = Color.white.opacity(0.62)
+    static let backgroundTop = Color(hex: "00135C")
+    static let backgroundBottom = Color(hex: "0038A8")
+    static let glow = Color(hex: "1D63E6")
+    /// Sky yellow – focus highlight, channel numbers and accents.
+    static let accent = Color(hex: "FFD100")
+    /// Used for progress bars and the "now" line.
+    static let live = Color(hex: "FFD100")
+    /// Dark navy text on yellow.
+    static let ink = Color(hex: "001450")
+    static let panel = Color(hex: "0A2C8F").opacity(0.85)
+    static let cell = Color(hex: "1E50C8").opacity(0.75)
+    static let cellNow = Color(hex: "2E6BF0").opacity(0.9)
+    static let secondaryText = Color(hex: "BCD0FF")
 
     // Layout metrics tuned for a 1920×1080 tvOS canvas.
     static let sidebarWidth: CGFloat = 300

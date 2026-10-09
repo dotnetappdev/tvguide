@@ -31,7 +31,15 @@ struct GuideContent: View {
                             GuideRow(channel: channel,
                                      gridWidth: gridWidth,
                                      focusedCell: $focusedCell,
-                                     onSelect: { detail = Highlight(channel: channel, programme: $0) })
+                                     onSelect: { programme in
+                                         // Like Sky: select on what's on now watches it, otherwise shows info.
+                                         if programme.isOn(at: store.now) {
+                                             store.tune(channel)
+                                         } else {
+                                             detail = Highlight(channel: channel, programme: programme)
+                                         }
+                                     },
+                                     onInfo: { detail = Highlight(channel: channel, programme: $0) })
                                 .padding(.bottom, Theme.rowSpacing)
                         }
                     } header: {
@@ -114,6 +122,7 @@ private struct TimelineHeader: View {
                         .font(.system(size: 16, weight: .heavy))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
+                        .foregroundStyle(Theme.ink)
                         .background(Theme.live, in: Capsule())
                         .offset(x: nowX - 24, y: 22)
                 }

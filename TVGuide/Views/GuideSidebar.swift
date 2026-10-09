@@ -4,6 +4,8 @@ import SwiftUI
 struct GuideSidebar: View {
     @Environment(GuideStore.self) private var store
     @Binding var showingRegions: Bool
+    @Binding var showingLiveSettings: Bool
+    @Binding var showingNumberPad: Bool
     /// While the user pages back through the timeline the sidebar steps aside,
     /// so pressing left keeps scrolling time instead of jumping into the menu.
     let isLocked: Bool
@@ -13,6 +15,7 @@ struct GuideSidebar: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("TV guide")
                     .font(.system(size: 34, weight: .bold))
+                    .foregroundStyle(Theme.accent)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 8)
 
@@ -24,6 +27,16 @@ struct GuideSidebar: View {
                     }
                     .buttonStyle(SidebarButtonStyle(isSelected: store.category == category))
                 }
+
+                sectionTitle("Watch")
+                Button { showingNumberPad = true } label: {
+                    Label("Channel number", systemImage: "number")
+                }
+                .buttonStyle(SidebarButtonStyle(isSelected: false))
+                Button { showingLiveSettings = true } label: {
+                    Label("Live TV", systemImage: "antenna.radiowaves.left.and.right")
+                }
+                .buttonStyle(SidebarButtonStyle(isSelected: false))
 
                 sectionTitle("Jump to")
                 Button { store.jumpToNow() } label: { Label("Now", systemImage: "clock") }
@@ -96,7 +109,7 @@ struct SidebarButtonStyle: ButtonStyle {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(isFocused ? Color.white : (isSelected ? Theme.accent.opacity(0.14) : .clear))
+                        .fill(isFocused ? Theme.accent : (isSelected ? Color.white.opacity(0.10) : .clear))
                 }
                 .scaleEffect(isFocused ? 1.04 : 1)
                 .scaleEffect(configuration.isPressed ? 0.97 : 1)

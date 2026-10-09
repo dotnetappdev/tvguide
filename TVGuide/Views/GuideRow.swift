@@ -8,6 +8,7 @@ struct GuideRow: View {
     let gridWidth: CGFloat
     var focusedCell: FocusState<String?>.Binding
     let onSelect: (Programme) -> Void
+    let onInfo: (Programme) -> Void
 
     var body: some View {
         let segments = store.segments(for: channel)
@@ -32,6 +33,10 @@ struct GuideRow: View {
                                    isFirst: index == 0, isLast: index == segments.count - 1)
                     }
                     .contextMenu {
+                        Button { store.tune(channel) } label: {
+                            Label("Watch \(channel.number) \(channel.name)", systemImage: "play.fill")
+                        }
+                        Button { onInfo(programme) } label: { Label("Programme info", systemImage: "info.circle") }
                         Button {
                             store.toggleFavourite(channel)
                         } label: {
@@ -115,6 +120,7 @@ private struct ChannelCell: View {
                 Text("\(channel.number)")
                     .font(.system(size: 22, weight: .bold))
                     .monospacedDigit()
+                    .foregroundStyle(Theme.accent)
                 Text(channel.name)
                     .font(.system(size: 18, weight: .medium))
                     .foregroundStyle(Theme.secondaryText)
@@ -124,7 +130,7 @@ private struct ChannelCell: View {
             if isFavourite {
                 Image(systemName: "heart.fill")
                     .font(.system(size: 18))
-                    .foregroundStyle(Theme.live)
+                    .foregroundStyle(Theme.accent)
             }
         }
         .padding(.horizontal, 12)
@@ -178,7 +184,7 @@ private struct ProgrammeCellLabel: View {
     }
 }
 
-/// Flat Sky Q style cell: translucent at rest, solid white when focused.
+/// Classic Sky cell: blue at rest, solid Sky yellow when focused.
 private struct ProgrammeCellStyle: ButtonStyle {
     let isOnNow: Bool
     let isPlaceholder: Bool
@@ -209,7 +215,7 @@ private struct ProgrammeCellStyle: ButtonStyle {
         }
 
         private var fill: Color {
-            if isFocused { return .white }
+            if isFocused { return Theme.accent }
             if isOnNow { return Theme.cellNow }
             return isPlaceholder ? .white.opacity(0.04) : Theme.cell
         }

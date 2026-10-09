@@ -13,6 +13,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dotnetappdev.tvguide
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: TVGuide-Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: TV Guide
         INFOPLIST_KEY_UIUserInterfaceStyle: Dark
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor

@@ -13,7 +13,7 @@ struct Region: Identifiable, Hashable {
     var itvPlus1Name: String = "ITV1+1"
     let channel4: String
     var channel4Plus1: String? = nil
-    var channel4Number: Int = 4
+    var channel4Number: Int = 104
     var extras: [Channel] = []
 
     static let all: [Region] = [
@@ -52,18 +52,18 @@ struct Region: Identifiable, Hashable {
                channel4: "Channel4South.uk", channel4Plus1: "Channel4Plus1South.uk"),
         Region(id: "wales", name: "Wales", bbcOne: "BBCOneWalesHD.uk", bbcTwo: "BBCTwoWales.uk",
                itv1: "ITV1Wales.uk", itvPlus1: "ITV1Plus1London.uk",
-               channel4: "Channel4South.uk", channel4Number: 13,
-               extras: [Channel(4, "S4C", id: "S4C.uk", .entertainment, brand: "E4003B")]),
+               channel4: "Channel4South.uk", channel4Number: 143,
+               extras: [Channel(104, "S4C", id: "S4C.uk", .entertainment, brand: "E4003B")]),
         Region(id: "scotland", name: "Scotland (Central)", bbcOne: "BBCOneScotHD.uk",
                itv1: "STVCentral.uk", itv1Name: "STV", itvPlus1: "STVCentralPlus1.uk", itvPlus1Name: "STV+1",
                channel4: "Channel4Scotland.uk", channel4Plus1: "Channel4Plus1Scotland.uk",
-               extras: [Channel(8, "BBC Scotland", id: "BBCScotland.uk", .entertainment, hd: true, brand: "1A1A1A"),
-                        Channel(7, "BBC ALBA", id: "BBCAlba.uk", .entertainment, hd: true, brand: "0C5DA5")]),
+               extras: [Channel(144, "BBC Scotland", id: "BBCScotland.uk", .entertainment, hd: true, brand: "1A1A1A"),
+                        Channel(145, "BBC ALBA", id: "BBCAlba.uk", .entertainment, hd: true, brand: "0C5DA5")]),
         Region(id: "scotlandnorth", name: "Scotland (North)", bbcOne: "BBCOneScotHD.uk",
                itv1: "STVNorth.uk", itv1Name: "STV", itvPlus1: "STVNorthPlus1.uk", itvPlus1Name: "STV+1",
                channel4: "Channel4Scotland.uk", channel4Plus1: "Channel4Plus1Scotland.uk",
-               extras: [Channel(8, "BBC Scotland", id: "BBCScotland.uk", .entertainment, hd: true, brand: "1A1A1A"),
-                        Channel(7, "BBC ALBA", id: "BBCAlba.uk", .entertainment, hd: true, brand: "0C5DA5")]),
+               extras: [Channel(144, "BBC Scotland", id: "BBCScotland.uk", .entertainment, hd: true, brand: "1A1A1A"),
+                        Channel(145, "BBC ALBA", id: "BBCAlba.uk", .entertainment, hd: true, brand: "0C5DA5")]),
         Region(id: "ni", name: "Northern Ireland", bbcOne: "BBCOneNorthernIreland.uk", bbcTwo: "BBCTwoNorthernIreland.uk",
                itv1: "UTV.uk", itv1Name: "UTV", itvPlus1: nil,
                channel4: "Channel4Ulster.uk"),

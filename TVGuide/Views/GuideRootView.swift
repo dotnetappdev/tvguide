@@ -7,6 +7,8 @@ struct GuideRootView: View {
     @State private var detail: Highlight?
     @State private var isGridFocused = false
     @State private var showingRegions = false
+    @State private var showingLiveSettings = false
+    @State private var showingNumberPad = false
 
     var body: some View {
         ZStack {
@@ -14,18 +16,32 @@ struct GuideRootView: View {
 
             VStack(spacing: 0) {
                 TopBar()
+                    .sheet(isPresented: $showingRegions) {
+                        RegionPicker().environment(store)
+                    }
                 HeroPanel(highlight: highlight ?? fallbackHighlight)
                     .frame(height: Theme.heroHeight)
+                    .fullScreenCover(isPresented: $showingNumberPad) {
+                        NumberPad(onTune: tuneAfterDismiss).environment(store)
+                    }
 
                 HStack(alignment: .top, spacing: 0) {
                     GuideSidebar(showingRegions: $showingRegions,
+                                 showingLiveSettings: $showingLiveSettings,
+                                 showingNumberPad: $showingNumberPad,
                                  isLocked: isGridFocused && !store.isAtNow)
                         .frame(width: Theme.sidebarWidth)
+                        .fullScreenCover(isPresented: $showingLiveSettings) {
+                            LiveSourceSettings().environment(store)
+                        }
 
                     GuideContent(highlight: $highlight,
                                  detail: $detail,
                                  isGridFocused: $isGridFocused)
                 }
+            }
+            .fullScreenCover(isPresented: isWatching) {
+                LivePlayerView().environment(store)
             }
 
             if case .loading = store.state, store.schedules.isEmpty {
@@ -33,13 +49,22 @@ struct GuideRootView: View {
             }
         }
         .fullScreenCover(item: $detail) { item in
-            ProgrammeDetailView(highlight: item)
+            ProgrammeDetailView(highlight: item, onWatch: tuneAfterDismiss)
                 .environment(store)
         }
-        .sheet(isPresented: $showingRegions) {
-            RegionPicker()
-                .environment(store)
-        }
+        .channelNumberEntry()
+    }
+
+    /// Full screen live TV is shown whenever a channel is tuned.
+    private var isWatching: Binding<Bool> {
+        Binding(get: { store.tunedChannelID != nil },
+                set: { if !$0 { store.tunedChannelID = nil } })
+    }
+
+    /// Tunes once the presenting screen has finished closing.
+    private func tuneAfterDismiss(_ channel: Channel) {
+        detail = nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { store.tune(channel) }
     }
 
     private var fallbackHighlight: Highlight? {
@@ -57,10 +82,10 @@ private struct TopBar: View {
             HStack(spacing: 14) {
                 Image(systemName: "play.tv.fill")
                     .font(.system(size: 34, weight: .semibold))
-                    .foregroundStyle(LinearGradient(colors: [Theme.accent, Theme.glow],
-                                                    startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .foregroundStyle(Theme.accent)
                 Text("TV Guide")
                     .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.accent)
             }
 
             Text(Fmt.longDay(store.now))

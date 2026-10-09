@@ -28,6 +28,14 @@ final class GuideStore {
     var category: ChannelCategory = .all
     private(set) var windowStart: Date
 
+    /// Channel currently being watched full screen (Sky style "tuned" channel).
+    var tunedChannelID: String?
+    /// M3U playlist providing live streams, e.g. from Channels DVR or Jellyfin.
+    private(set) var liveSourceURL: URL?
+    private(set) var liveSourceStatus: String?
+    private(set) var streams: [String: URL] = [:]
+    private var playlist: M3UPlaylist?
+
     private let service: EPGService
     private let defaults: UserDefaults
     private var clockTask: Task<Void, Never>?
@@ -40,13 +48,16 @@ final class GuideStore {
         self.favourites = Set(defaults.stringArray(forKey: Keys.favourites) ?? [])
         self.windowStart = SampleSchedule.alignedDown(Date(), minutes: 30)
         self.channels = ChannelLineup.channels(for: region)
+        self.liveSourceURL = defaults.string(forKey: Keys.liveSource).flatMap(URL.init(string:))
     }
 
     // MARK: Loading
 
     func start() async {
         startClock()
-        await load()
+        async let listings: Void = load()
+        async let live: Void = loadLiveSource()
+        _ = await (listings, live)
     }
 
     func load(forceRefresh: Bool = false) async {
@@ -77,6 +88,7 @@ final class GuideStore {
         defaults.set(region.id, forKey: Keys.region)
         channels = ChannelLineup.channels(for: region)
         applyLogos()
+        streams = playlist?.streams(for: channels) ?? [:]
         await load()
     }
 
@@ -105,6 +117,53 @@ final class GuideStore {
         // Keep the window pinned to "now" if the user hasn't scrolled away.
         if windowStart == previousEarliest { windowStart = earliestWindowStart }
         if windowStart < earliestWindowStart { windowStart = earliestWindowStart }
+    }
+
+    // MARK: Live TV
+
+    func setLiveSource(_ string: String) async {
+        let trimmed = string.trimmed
+        liveSourceURL = trimmed.isEmpty ? nil : URL(string: trimmed)
+        defaults.set(liveSourceURL?.absoluteString, forKey: Keys.liveSource)
+        await loadLiveSource()
+    }
+
+    func loadLiveSource() async {
+        guard let url = liveSourceURL else {
+            playlist = nil
+            streams = [:]
+            liveSourceStatus = nil
+            return
+        }
+        do {
+            let playlist = try await M3UPlaylist.load(from: url)
+            self.playlist = playlist
+            streams = playlist.streams(for: channels)
+            liveSourceStatus = "\(streams.count) of \(channels.count) channels available"
+        } catch {
+            liveSourceStatus = "Couldn't load playlist: \(error.localizedDescription)"
+        }
+    }
+
+    func stream(for channel: Channel) -> URL? { streams[channel.id] }
+
+    var tunedChannel: Channel? { tunedChannelID.flatMap(channel(id:)) }
+
+    func tune(_ channel: Channel) { tunedChannelID = channel.id }
+
+    /// Tunes to a channel by its number, Sky style. Returns `false` if no channel has that number.
+    @discardableResult
+    func tune(number: Int) -> Bool {
+        guard let channel = channels.first(where: { $0.number == number }) else { return false }
+        tune(channel)
+        return true
+    }
+
+    /// Channel up / down, wrapping around the full line-up.
+    func channel(after channel: Channel, offset: Int) -> Channel? {
+        guard !channels.isEmpty, let index = channels.firstIndex(where: { $0.id == channel.id }) else { return nil }
+        let next = (index + offset % channels.count + channels.count) % channels.count
+        return channels[next]
     }
 
     // MARK: Channels
@@ -215,5 +274,6 @@ final class GuideStore {
     private enum Keys {
         static let region = "guide.region"
         static let favourites = "guide.favourites"
+        static let liveSource = "guide.liveSource"
     }
 }

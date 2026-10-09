@@ -1,12 +1,12 @@
 # TV Guide for Apple TV
 
-A modern, Sky Q inspired electronic programme guide for **Apple TV (tvOS 17+)**, built in SwiftUI for the UK **Freeview** line-up.
+A classic Sky style TV guide for **Apple TV (tvOS 17+)**, in Sky blue and yellow, built in SwiftUI for the UK free-to-air line-up. Channels use Sky style numbers (**101 BBC One, 102 BBC Two, 103 ITV1, 104 Channel 4, 105 5**…), and you can launch straight into live TV.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ ▶ TV Guide   Friday 9 October            ● Freeview · London · 12:03   7:50pm │
 │                                                                              │
-│ [BBC TWO] 2  BBC Two                                     ░░░ artwork ░░░░░░░ │
+│ [BBC TWO] 102  BBC Two                                   ░░░ artwork ░░░░░░░ │
 │ Impossible                                               ░░░░░░░░░░░░░░░░░░░ │
 │ 45m  HD  S  S5 E5   Started at 1:00pm  ━━━━━━──── 23m left                   │
 │ Quiz in which contestants must avoid giving impossible answers…              │
@@ -16,11 +16,30 @@ A modern, Sky Q inspired electronic programme guide for **Apple TV (tvOS 17+)**,
 │ ♡ Favs     │ │ BBC One  │ │ BBC Two  │ │ ITV1     │ │ Channel 4│  …           │
 │ ✦ Ent.     │ └──────────┘ └──────────┘ └──────────┘ └──────────┘              │
 │ 🎞 Movies   │ Today     │ 1:00pm      1:30pm      2:00pm      2:30pm           │
-│ 🌍 Docs     │ 1 BBC One │ News at One ┃ Sister Boniface Mysteries │ Escape…    │
-│ 📰 News     │ 2 BBC Two │ Impossible  ┃         │ Bargain Hunt     │ …        │
-│ 🎈 Kids     │ 3 ITV1    │ Loose Women ┃                   │ ITV News │ …     │
+│ 🌍 Docs     │ 101 BBC One│ News at One ┃ Sister Boniface Mysteries │ Escape…    │
+│ 📰 News     │ 102 BBC Two│ Impossible  ┃         │ Bargain Hunt     │ …        │
+│ 🎈 Kids     │ 103 ITV1   │ Loose Women ┃                   │ ITV News │ …     │
 └────────────┴─────────────────────────────────────────────────────────────────┘
 ```
+
+## Watching live TV
+
+- **Select** a programme that's on now (in the grid or the On now tiles) to watch the channel full screen. Select a future programme to see its info.
+- **Type a channel number** Sky style – 1, 0, 1 for BBC One – from a keyboard or universal remote with number keys, or use **Channel number** in the sidebar for an on-screen keypad with the Siri Remote. It tunes after three digits or a 2 second pause.
+- While watching, press **up / down** for channel up / down. A Sky style now & next banner (yellow channel number, logo, progress, what's next) appears on every change; press **select** or left/right to bring it back. **Play/Pause** pauses, **Menu** returns to the guide.
+
+### Where the pictures come from
+
+Apple TV has no TV tuner, so live pictures need a stream:
+
+1. **Your own live TV source (recommended).** Under **Live TV** in the sidebar enter an M3U playlist of HLS streams, e.g. from
+   - Channels DVR with an HDHomeRun Freeview tuner: `http://<server>:8089/devices/ANY/channels.m3u?format=hls`
+   - Jellyfin / Plex / TVHeadend live TV, or an IPTV provider you subscribe to.
+
+   Channels are matched to the guide by `tvg-id` (the XMLTV ids used by this app, e.g. `BBCOneLondonHD.uk`), then by channel name. Streams play in-app with AVPlayer, so they must be HLS (raw MPEG-TS from a tuner won't play).
+2. **The broadcaster's app (fallback).** If a channel has no stream, the player offers **Watch in BBC iPlayer / ITVX / Channel 4 / 5 / U**. These deep links aren't officially documented by the broadcasters, so they are best effort: the app tries a live-channel link first, then just opens the app.
+
+`TVGuide-Info.plist` allows plain `http` and local-network access so home servers work.
 
 ## Features
 
@@ -30,8 +49,8 @@ A modern, Sky Q inspired electronic programme guide for **Apple TV (tvOS 17+)**,
   - Press **right** on the last programme in a row (or **left** on the first) to scroll the timeline by 30 minutes; listings slide across smoothly.
   - Press **Play/Pause** to snap back to now.
   - The time header stays pinned while you scroll down through channels.
-- **Sidebar** – filter by All channels, Favourites, Entertainment, Movies, Documentaries, News and Kids; jump to Now / Tonight / Tomorrow; choose your region; refresh.
-- **Favourites** – press and hold any tile or programme to add/remove the channel.
+- **Sidebar** – filter by All channels, Favourites, Entertainment, Movies, Documentaries, News and Kids; enter a channel number; set up Live TV; jump to Now / Tonight / Tomorrow; choose your region; refresh.
+- **Favourites & more** – press and hold any tile or programme to watch, see programme info, or add/remove the channel from favourites.
 - **Programme page** – full screen artwork, synopsis and "Later on" for the channel.
 - **Regional listings** – BBC One, ITV1/STV/UTV and Channel 4 follow your Freeview region (London, South East, North West, Wales, Scotland, Northern Ireland and more), including S4C, BBC Scotland and BBC ALBA where relevant.
 
@@ -43,7 +62,7 @@ Listings come from the community maintained [Freeview-EPG](https://github.com/dp
 2. Stream-parses it, keeping only the ~60 TV channels in the line-up (≈0.6s on a desktop CPU).
 3. Falls back to the stale cache if the network is unavailable, and to generated sample listings if there is no cache at all (shown as "Sample listings · offline" in the header).
 
-Channel numbers follow the England Freeview plan and are approximate – edit `TVGuide/Models/ChannelLineup.swift` to change numbering or add/remove channels (use the XMLTV ids from the feed).
+Channel numbers follow Sky's layout (1xx entertainment, 3xx movies, 5xx news, 6xx kids) but are approximate – edit `TVGuide/Models/ChannelLineup.swift` to change numbering or add/remove channels (use the XMLTV ids from the feed).
 
 ## Building
 
@@ -67,9 +86,12 @@ TVGuide/
   Services/XMLTVParser.swift     Streaming XMLTV parser (filters to wanted channels)
   Services/EPGService.swift      Download + disk cache of the Freeview feed
   Services/SampleSchedule.swift  Offline fallback listings
+  Services/M3UPlaylist.swift     Live TV playlist parsing and channel matching
+  Models/Broadcaster.swift       Broadcaster app deep links (fallback)
   Store/GuideStore.swift         Observable state: listings, timeline window, favourites, region
   Theme/Theme.swift              Colours, metrics, UK date/time formatting
-  Views/                         Root layout, hero panel, sidebar, tiles, grid rows, detail, region picker
+  Views/                         Guide layout, hero panel, sidebar, tiles, grid rows, detail, live player,
+                                 channel number entry/keypad, live TV and region settings
 ```
 
 ## Remote controls
@@ -78,7 +100,10 @@ TVGuide/
 | --- | --- | --- |
 | Grid | ← / → | Move between programmes; at the edges scroll the timeline by 30 minutes |
 | Grid | ↑ / ↓ | Move between channels (scroll up past the first channel to reach the tiles) |
-| Grid / tiles | Select | Open the programme page |
-| Grid / tiles | Press & hold | Add or remove the channel from favourites |
+| Grid / tiles | Select | Watch the channel (on now) or open programme info (later) |
+| Anywhere in the guide | Number keys | Tune Sky style, e.g. 101 |
+| Grid / tiles | Press & hold | Watch, programme info, favourites |
+| Live TV | ↑ / ↓ | Channel up / down |
+| Live TV | Select | Show the now & next banner |
 | Grid | Play/Pause | Jump back to now |
 | Anywhere | Menu | Back / close |

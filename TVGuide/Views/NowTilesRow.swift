@@ -14,13 +14,16 @@ struct NowTilesRow: View {
                 ForEach(store.visibleChannels) { channel in
                     let current = store.current(on: channel)
                     Button {
-                        detail = Highlight(channel: channel, programme: current)
+                        store.tune(channel)
                     } label: {
                         NowTile(channel: channel, current: current, next: store.next(on: channel), now: store.now)
                     }
                     .buttonStyle(.card)
                     .focused($focusedTile, equals: channel.id)
                     .contextMenu {
+                        Button { detail = Highlight(channel: channel, programme: current) } label: {
+                            Label("Programme info", systemImage: "info.circle")
+                        }
                         Button { store.toggleFavourite(channel) } label: {
                             Label(store.isFavourite(channel) ? "Remove from favourites" : "Add to favourites",
                                   systemImage: store.isFavourite(channel) ? "heart.slash" : "heart")
@@ -73,8 +76,9 @@ private struct NowTile: View {
             HStack(spacing: 10) {
                 ChannelLogo(channel: channel, height: 34)
                 Text("\(channel.number)")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 24, weight: .heavy))
                     .monospacedDigit()
+                    .foregroundStyle(Theme.accent)
                     .shadow(radius: 4)
             }
             .padding(14)

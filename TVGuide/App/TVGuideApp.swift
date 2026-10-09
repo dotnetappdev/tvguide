@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 
 @main
@@ -9,6 +10,7 @@ struct TVGuideApp: App {
         // goes through the shared URL cache; give it room for a week of artwork.
         URLCache.shared = URLCache(memoryCapacity: 64 * 1024 * 1024,
                                    diskCapacity: 300 * 1024 * 1024)
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
     }
 
     var body: some Scene {

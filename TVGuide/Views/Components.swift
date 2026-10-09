@@ -103,7 +103,7 @@ struct Artwork: View {
     }
 }
 
-/// Full-screen backdrop: deep blue gradient with soft glows.
+/// Full-screen backdrop: classic Sky royal blue gradient.
 struct GuideBackground: View {
     var body: some View {
         ZStack {
@@ -111,7 +111,7 @@ struct GuideBackground: View {
                            startPoint: .top, endPoint: .bottom)
             RadialGradient(colors: [Theme.glow.opacity(0.45), .clear],
                            center: .topTrailing, startRadius: 40, endRadius: 900)
-            RadialGradient(colors: [Theme.accent.opacity(0.12), .clear],
+            RadialGradient(colors: [Theme.backgroundTop.opacity(0.6), .clear],
                            center: .bottomLeading, startRadius: 20, endRadius: 700)
         }
         .ignoresSafeArea()
