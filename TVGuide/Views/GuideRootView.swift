@@ -9,7 +9,6 @@ struct GuideRootView: View {
     @State private var isGridFocused = false
     @State private var showingRegions = false
     @State private var showingLiveSettings = false
-    @State private var showingNumberPad = false
     @State private var showingSearch = false
     @State private var showingReminders = false
 
@@ -27,14 +26,10 @@ struct GuideRootView: View {
                     }
                 HeroPanel(highlight: highlight ?? fallbackHighlight)
                     .frame(height: Theme.heroHeight)
-                    .fullScreenCover(isPresented: $showingNumberPad) {
-                        NumberPad(onTune: tuneAfterDismiss).environment(store)
-                    }
 
                 HStack(alignment: .top, spacing: 0) {
                     GuideSidebar(showingRegions: $showingRegions,
                                  showingLiveSettings: $showingLiveSettings,
-                                 showingNumberPad: $showingNumberPad,
                                  showingSearch: $showingSearch,
                                  showingReminders: $showingReminders,
                                  isLocked: isGridFocused && !store.isAtNow)
@@ -64,13 +59,12 @@ struct GuideRootView: View {
                 .environment(store)
                 .environment(reminders)
         }
-        .channelNumberEntry()
         .reminderAlerts(isActive: store.tunedChannelID == nil && detail == nil && !isShowingOverlay)
     }
 
     /// Any full screen page on top of the guide (reminder alerts wait until it closes).
     private var isShowingOverlay: Bool {
-        showingSearch || showingReminders || showingNumberPad || showingLiveSettings || showingRegions
+        showingSearch || showingReminders || showingLiveSettings || showingRegions
     }
 
     /// Full screen live TV is shown whenever a channel is tuned.

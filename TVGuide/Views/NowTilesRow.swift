@@ -73,15 +73,8 @@ private struct NowTile: View {
             .padding(16)
         }
         .overlay(alignment: .topLeading) {
-            HStack(spacing: 10) {
-                ChannelLogo(channel: channel, height: 34)
-                Text("\(channel.displayNumber)")
-                    .font(.system(size: 24, weight: .heavy))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.accent)
-                    .shadow(radius: 4)
-            }
-            .padding(14)
+            ChannelLogo(channel: channel, height: 34)
+                .padding(14)
         }
         .frame(width: 400, height: 225)
         .foregroundStyle(.white)

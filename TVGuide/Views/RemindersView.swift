@@ -16,14 +16,14 @@ struct ReminderAlerts: ViewModifier {
             .alert(current.map { "Reminder: \($0.title)" } ?? "Reminder",
                    isPresented: Binding(get: { current != nil }, set: { if !$0 { current = nil } }),
                    presenting: current) { reminder in
-                Button("Watch \(reminder.channelDisplayNumber) \(reminder.channelName)") {
+                Button("Watch \(reminder.channelName)") {
                     if let channel = store.channel(id: reminder.channelID) { store.tune(channel) }
                 }
                 Button("Dismiss", role: .cancel) {}
             } message: { reminder in
                 Text(reminder.start > store.now
-                     ? "Starts at \(Fmt.time(reminder.start)) on \(reminder.channelDisplayNumber) \(reminder.channelName)."
-                     : "Started at \(Fmt.time(reminder.start)) on \(reminder.channelDisplayNumber) \(reminder.channelName).")
+                     ? "Starts at \(Fmt.time(reminder.start)) on \(reminder.channelName)."
+                     : "Started at \(Fmt.time(reminder.start)) on \(reminder.channelName).")
             }
     }
 
@@ -92,10 +92,8 @@ private struct ReminderRow: View {
 
     var body: some View {
         HStack(spacing: 30) {
-            Text("\(reminder.channelDisplayNumber)")
-                .font(.system(size: 34, weight: .heavy))
-                .monospacedDigit()
-                .frame(width: 100, alignment: .leading)
+            Image(systemName: "bell.fill")
+                .font(.system(size: 28))
             VStack(alignment: .leading, spacing: 4) {
                 Text(reminder.title).font(.system(size: 30, weight: .bold)).lineLimit(1)
                 Text("\(Fmt.day(reminder.start, relativeTo: now)) · \(Fmt.time(reminder.start)) – \(Fmt.time(reminder.end)) · \(reminder.channelName)")

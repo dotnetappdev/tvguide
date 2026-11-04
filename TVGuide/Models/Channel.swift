@@ -50,7 +50,8 @@ enum ChannelCategory: String, CaseIterable, Identifiable, Codable {
 struct Channel: Identifiable, Hashable, Codable {
     /// The XMLTV channel id used by the EPG feed, e.g. `BBCTwoHD.uk`.
     let id: String
-    /// Logical channel number shown in the guide.
+    /// Position in the guide, following Sky's channel order (BBC One first,
+    /// radio after TV). Used only for sorting; not shown on screen.
     let number: Int
     let name: String
     let category: ChannelCategory
@@ -58,11 +59,8 @@ struct Channel: Identifiable, Hashable, Codable {
     /// Brand colour used for fallback logos and tile gradients, as `RRGGBB`.
     let brandHex: String
     var logoURL: URL?
-    /// Radio station: numbered Sky style with a leading zero ("0101") and played audio-only.
+    /// Radio station: listed after the TV channels and played audio-only.
     var isRadio: Bool { category == .radio }
-
-    /// The number as shown on screen: "101" for TV, "0101" for radio.
-    var displayNumber: String { isRadio ? String(format: "0%03d", number) : String(number) }
 
     init(_ number: Int, _ name: String, id: String, _ category: ChannelCategory,
          hd: Bool = false, brand: String = "1F4FD1", logo: URL? = nil) {

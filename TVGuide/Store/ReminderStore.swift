@@ -14,9 +14,6 @@ final class Reminder {
     var programmeID: String = ""
     var channelID: String = ""
     var channelName: String = ""
-    var channelNumber: Int = 0
-    /// "101" for TV, "0101" for radio.
-    var channelDisplayNumber: String = ""
     var title: String = ""
     var start: Date = Date.distantPast
     var end: Date = Date.distantPast
@@ -26,8 +23,6 @@ final class Reminder {
         programmeID = programme.id
         channelID = channel.id
         channelName = channel.name
-        channelNumber = channel.number
-        channelDisplayNumber = channel.displayNumber
         title = programme.title
         start = programme.start
         end = programme.end

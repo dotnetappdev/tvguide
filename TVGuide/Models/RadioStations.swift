@@ -1,14 +1,15 @@
 import Foundation
 
-/// UK radio stations in Sky's radio line-up (0101 BBC Radio 1 … 0142 Times
-/// Radio), with the broadcasters' own public internet streams.
+/// UK radio stations in Sky's radio line-up (BBC Radio 1 … Times Radio), in
+/// Sky's order, with the broadcasters' own public internet streams.
 ///
 /// Stream addresses were checked when this table was written: BBC stations
 /// use the BBC's HLS streams, commercial stations their Icecast/AAC streams.
 /// Stations without a working public stream have `stream == nil` and still
 /// appear in the guide with their listings.
 struct RadioStation {
-    /// Sky radio number without the leading zero (101 = "0101").
+    /// Position in Sky's radio list (Sky's number without the leading zero);
+    /// used to match Sky's radio services and for ordering, not shown.
     let number: Int
     let name: String
     let stream: URL?

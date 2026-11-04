@@ -228,7 +228,7 @@ final class GuideStore {
 
     /// Free-to-air line-up for the region plus any Sky channels, in number order.
     private func rebuildChannels() {
-        // TV in number order, then radio (0101 …), like the Sky guide.
+        // TV in Sky order, then radio, like the Sky guide.
         channels = (ChannelLineup.channels(for: region) + skyChannels + catalogueChannels)
             .sorted { ($0.isRadio ? 1 : 0, $0.number) < ($1.isRadio ? 1 : 0, $1.number) }
         applyLogos()
@@ -336,24 +336,6 @@ final class GuideStore {
 
     func tune(_ channel: Channel) { tunedChannelID = channel.id }
 
-    /// The channel for digits typed Sky style: "101" is BBC One, "0101" is BBC Radio 1.
-    func channel(digits: String) -> Channel? {
-        guard let number = Int(digits) else { return nil }
-        let wantsRadio = digits.hasPrefix("0")
-        return channels.first { $0.number == number && $0.isRadio == wantsRadio }
-    }
-
-    /// Tunes to a channel by its number, Sky style. Returns `false` if no channel has that number.
-    @discardableResult
-    func tune(number: Int) -> Bool { tune(digits: String(number)) }
-
-    @discardableResult
-    func tune(digits: String) -> Bool {
-        guard let channel = channel(digits: digits) else { return false }
-        tune(channel)
-        return true
-    }
-
     /// Channel up / down, wrapping around the full line-up.
     func channel(after channel: Channel, offset: Int) -> Channel? {
         // TV zaps through TV channels and radio through radio stations.
@@ -419,7 +401,7 @@ final class GuideStore {
         }
 
         var results = SearchResults()
-        results.channels = channels.filter { matches($0.name) || $0.displayNumber == query.trimmed }
+        results.channels = channels.filter { matches($0.name) }
         var seen = Set<String>()
         for channel in channels {
             for programme in schedules[channel.id] ?? [] where programme.end > now && matches(programme.title) {

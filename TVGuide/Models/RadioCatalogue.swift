@@ -1,12 +1,12 @@
 import Foundation
 
-/// Radio stations beyond Sky's own radio list (0101–0142), numbered Sky style
-/// after it:
-/// - 0143–0146 extra BBC national streams
-/// - 0150–0189 national commercial stations (Absolute, KISS, Magic, Greatest
+/// Radio stations beyond Sky's own radio list. `number` only orders them in
+/// the guide (it isn't shown), continuing after Sky's list:
+/// - 143–146 extra BBC national streams
+/// - 150–189 national commercial stations (Absolute, KISS, Magic, Greatest
 ///   Hits, Hits Radio, Jazz FM, Planet Rock, Boom, LBC London, Global extras)
-/// - 0200–0241 BBC Local Radio
-/// - 0260 onwards regional stations for Scotland, Northern Ireland, Wales and
+/// - 200–241 BBC Local Radio
+/// - 260 onwards regional stations for Scotland, Northern Ireland, Wales and
 ///   the English regions (Cool FM, Downtown, Clyde 1, Forth 1, Radio City …)
 ///
 /// BBC and Global stream addresses were checked when this list was written.

@@ -31,10 +31,6 @@ struct ProgrammeDetailView: View {
             VStack(alignment: .leading, spacing: 22) {
                 HStack(spacing: 18) {
                     ChannelLogo(channel: channel, height: 54)
-                    Text("\(channel.displayNumber)")
-                        .font(.system(size: 34, weight: .heavy))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.accent)
                     Text(channel.name)
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundStyle(Theme.secondaryText)

@@ -5,7 +5,6 @@ struct GuideSidebar: View {
     @Environment(GuideStore.self) private var store
     @Binding var showingRegions: Bool
     @Binding var showingLiveSettings: Bool
-    @Binding var showingNumberPad: Bool
     @Binding var showingSearch: Bool
     @Binding var showingReminders: Bool
     /// While the user pages back through the timeline the sidebar steps aside,
@@ -34,10 +33,6 @@ struct GuideSidebar: View {
                 }
 
                 sectionTitle("Watch")
-                Button { showingNumberPad = true } label: {
-                    Label("Channel number", systemImage: "number")
-                }
-                .buttonStyle(SidebarButtonStyle(isSelected: false))
                 Button { showingReminders = true } label: { Label("Reminders", systemImage: "bell") }
                     .buttonStyle(SidebarButtonStyle(isSelected: false))
                 Button { showingLiveSettings = true } label: {

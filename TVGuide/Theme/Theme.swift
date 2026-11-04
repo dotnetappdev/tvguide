@@ -5,7 +5,7 @@ enum Theme {
     static let backgroundTop = Color(hex: "00135C")
     static let backgroundBottom = Color(hex: "0038A8")
     static let glow = Color(hex: "1D63E6")
-    /// Sky yellow – focus highlight, channel numbers and accents.
+    /// Sky yellow – focus highlight and accents.
     static let accent = Color(hex: "FFD100")
     /// Used for progress bars and the "now" line.
     static let live = Color(hex: "FFD100")

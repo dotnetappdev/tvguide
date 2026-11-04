@@ -31,10 +31,6 @@ struct HeroPanel: View {
         return VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 16) {
                 ChannelLogo(channel: channel, height: 40)
-                Text("\(channel.displayNumber)")
-                    .font(.system(size: 28, weight: .heavy))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.accent)
                 Text(channel.name)
                     .font(.system(size: 24, weight: .semibold))
                     .foregroundStyle(Theme.secondaryText)
@@ -115,10 +111,6 @@ struct LivePreview: View {
             }
             LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .center, endPoint: .bottom)
             HStack(spacing: 10) {
-                Text("\(channel.displayNumber)")
-                    .font(.system(size: 24, weight: .heavy))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.accent)
                 if showsVideo {
                     Text("LIVE")
                         .font(.system(size: 14, weight: .heavy))

@@ -36,7 +36,7 @@ struct GuideRow: View {
                     }
                     .contextMenu {
                         Button { store.tune(channel) } label: {
-                            Label("Watch \(channel.displayNumber) \(channel.name)", systemImage: "play.fill")
+                            Label("Watch \(channel.name)", systemImage: "play.fill")
                         }
                         if programme.start > store.now, !programme.isPlaceholder {
                             Button { reminders.toggle(programme, on: channel) } label: {
@@ -116,7 +116,7 @@ struct GuideRow: View {
     }
 }
 
-/// Channel number, logo and name at the start of each row.
+/// Logo and name at the start of each row.
 private struct ChannelCell: View {
     let channel: Channel
     let isFavourite: Bool
@@ -124,16 +124,10 @@ private struct ChannelCell: View {
     var body: some View {
         HStack(spacing: 14) {
             ChannelLogo(channel: channel, height: 40)
-            VStack(alignment: .leading, spacing: 0) {
-                Text("\(channel.displayNumber)")
-                    .font(.system(size: 22, weight: .bold))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.accent)
-                Text(channel.name)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(Theme.secondaryText)
-                    .lineLimit(1)
-            }
+            Text(channel.name)
+                .font(.system(size: 20, weight: .semibold))
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
             Spacer(minLength: 0)
             if isFavourite {
                 Image(systemName: "heart.fill")

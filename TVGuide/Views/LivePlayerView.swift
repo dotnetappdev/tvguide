@@ -64,7 +64,6 @@ struct LivePlayerView: View {
         .onPlayPauseCommand {
             if player.timeControlStatus == .paused { player.play() } else { player.pause() }
         }
-        .channelNumberEntry()
         .reminderAlerts()
         .animation(.easeInOut(duration: 0.25), value: showBanner)
         .task(id: "\(store.tunedChannelID ?? "")|\(stream?.absoluteString ?? "")") { play(stream) }
@@ -162,12 +161,13 @@ private struct ChannelBanner: View {
         let next = store.next(on: channel)
 
         HStack(alignment: .center, spacing: 36) {
-            VStack(spacing: 10) {
-                Text("\(channel.displayNumber)")
-                    .font(.system(size: 64, weight: .heavy, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.accent)
-                ChannelLogo(channel: channel, height: 44)
+            VStack(spacing: 12) {
+                ChannelLogo(channel: channel, height: 64)
+                Text(channel.name)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(Theme.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             .frame(width: 200)
 
@@ -307,7 +307,7 @@ struct VideoSurface: UIViewRepresentable {
     }
 }
 
-/// Sky style radio screen: big station logo and number, what's on, a moving
+/// Sky style radio screen: big station logo and name, what's on, a moving
 /// level meter, and what's next.
 private struct RadioNowPlaying: View {
     @Environment(GuideStore.self) private var store
@@ -345,10 +345,6 @@ private struct RadioNowPlaying: View {
                     }
                     .shadow(color: .black.opacity(0.45), radius: 30, y: 16)
 
-                    Text(channel.displayNumber)
-                        .font(.system(size: 64, weight: .heavy, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.accent)
                 }
 
                 VStack(alignment: .leading, spacing: 22) {
