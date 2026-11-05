@@ -1,5 +1,7 @@
 # TV Guide for Apple TV
 
+> **Also on Amazon Fire TV:** the same guide as an Android TV app – see [`firetv/`](firetv/README.md). On Fire TV an HDHomeRun tuner plays directly, without Channels DVR.
+
 A classic Sky style TV guide for **Apple TV (tvOS 17+)**, in Sky blue and yellow, built in SwiftUI for the UK free-to-air line-up. Channels are listed in Sky's order (BBC One, BBC Two, ITV1, Channel 4, 5 …) without channel numbers, as Apple TV has none, and you can launch straight into live TV.
 
 ![Guide](docs/screenshots/grid.jpg)

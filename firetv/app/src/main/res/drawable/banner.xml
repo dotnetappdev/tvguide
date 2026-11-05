@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 320x180 launcher banner: Sky blue with a yellow TV and "TV Guide". -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:angle="270" android:startColor="#FF00135C" android:endColor="#FF0038A8" />
+            <size android:width="320dp" android:height="180dp" />
+        </shape>
+    </item>
+    <item android:drawable="@drawable/banner_logo" android:gravity="center" />
+</layer-list>
