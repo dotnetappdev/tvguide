@@ -1,6 +1,6 @@
 # TV Guide for Apple TV
 
-> **Also on Amazon Fire TV:** the same guide as an Android TV app – see [`firetv/`](firetv/README.md). On Fire TV an HDHomeRun tuner plays directly, without Channels DVR.
+> **Also on Amazon Fire TV:** the same guide as an Android TV app – see [`firetv/`](firetv/README.md).
 
 A classic Sky style TV guide for **Apple TV (tvOS 17+)**, in Sky blue and yellow, built in SwiftUI for the UK free-to-air line-up. Channels are listed in Sky's order (BBC One, BBC Two, ITV1, Channel 4, 5 …) without channel numbers, as Apple TV has none, and you can launch straight into live TV.
 
@@ -23,17 +23,13 @@ A classic Sky style TV guide for **Apple TV (tvOS 17+)**, in Sky blue and yellow
 
 ### Where the pictures come from
 
-Apple TV has no aerial input, so live pictures need a tuner on your home network. Set it up under **Live TV** in the sidebar:
+Apple TV has no aerial input, so live pictures come from a live TV source, set up under **Live TV** in the sidebar:
 
-1. **HDHomeRun + Channels DVR (recommended).** An HDHomeRun Freeview tuner plugged into your aerial and router, plus [Channels DVR](https://getchannels.com) running on a Mac, PC or NAS. The app **finds Channels DVR servers automatically** (Bonjour), or you can type the address (e.g. `192.168.1.20`, port 8089 by default). It then:
-   - plays every channel the tuner receives, using Channels DVR's HLS streams (`/devices/ANY/channels.m3u?format=hls`);
-   - reads the **guide from your aerial** via Channels DVR (`/devices/ANY/guide`), which fills in any channel the internet listings miss and takes over completely if the internet listings can't be downloaded.
-
-   The app also spots HDHomeRun tuners on your network. On their own they stream MPEG-TS, which Apple TV can't play, so the app tells you to add them to Channels DVR.
-2. **Any M3U playlist of HLS streams** – Jellyfin, Plex, TVHeadend or an IPTV service. Channels are matched to the guide by `tvg-id` or by name (tuner names like "BBC ONE Lon HD" or "ITV1 +1" are understood). If the playlist header links an XMLTV guide (`url-tvg`), it's used as backup listings too.
+1. **Channels DVR.** The app finds [Channels DVR](https://getchannels.com) servers on your network automatically (Bonjour), or you can type the address (port 8089 by default). It plays the server's HLS streams (`/devices/ANY/channels.m3u?format=hls`) and uses its guide (`/devices/ANY/guide`) for any channel the internet listings miss, or all of them if the internet listings can't be downloaded.
+2. **Any M3U playlist of HLS streams** – Jellyfin, Plex, TVHeadend or an IPTV service. Channels are matched to the guide by `tvg-id` or by name (names like "BBC ONE Lon HD" or "ITV1 +1" are understood). If the playlist header links an XMLTV guide (`url-tvg`), it's used as backup listings too.
 3. **The broadcaster's app (fallback).** If a channel has no stream, the player offers **Watch in BBC iPlayer / ITVX / Channel 4 / 5 / U / NOW**. These deep links aren't officially documented, so they're best effort.
 
-Sky channels arrive by satellite, so a Freeview tuner can't receive them; watch those in the NOW app or via an IPTV playlist that carries them.
+Sky channels need a source that carries them (or the NOW app).
 
 `TVGuide-Info.plist` allows plain `http`, local-network access and Bonjour browsing for `_channels_dvr._tcp`.
 
@@ -115,8 +111,8 @@ TVGuide/
   Models/RadioCatalogue.swift    Further UK stations (0143+): national, BBC local, regional
   Services/RayoService.swift     Rayo stations' live streams, logos, on-air show and song
   Services/ChannelsDVR.swift     Channels DVR client: HLS playlist and guide from the aerial
-  Services/LiveTVDiscovery.swift Finds Channels DVR servers (Bonjour) and HDHomeRun tuners
-  Services/ChannelMatcher.swift  Matches tuner/playlist channel names to the guide
+  Services/LiveTVDiscovery.swift Finds Channels DVR servers (Bonjour)
+  Services/ChannelMatcher.swift  Matches live TV source channel names to the guide
   Store/ReminderStore.swift      SwiftData reminders, due checks, icon badge
   Models/Broadcaster.swift       Broadcaster app deep links (fallback)
   Store/GuideStore.swift         Observable state: listings, timeline window, favourites, region

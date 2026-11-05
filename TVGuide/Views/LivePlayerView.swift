@@ -249,10 +249,10 @@ private struct NoStreamPanel: View {
             return "This station doesn't have a public internet stream that Apple TV can play."
         }
         if !hasLiveSource {
-            return "Connect a TV tuner under Live TV in the guide's sidebar (an HDHomeRun with Channels DVR, or a Jellyfin, TVHeadend or IPTV playlist) to watch here."
+            return "Add a live TV source under Live TV in the guide's sidebar (Channels DVR, or a Jellyfin, Plex, TVHeadend or IPTV playlist) to watch here."
         }
         if channel.id.hasPrefix("sky:") {
-            return "Sky channels come by satellite, so a Freeview tuner can't receive them. Watch them in the NOW app."
+            return "Your live TV source doesn't carry Sky channels. Watch them in the NOW app."
         }
         return "Your live TV source doesn't include this channel."
     }

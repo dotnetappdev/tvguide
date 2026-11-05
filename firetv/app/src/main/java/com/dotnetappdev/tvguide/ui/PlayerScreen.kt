@@ -293,14 +293,14 @@ private fun BannerLine(label: String, time: String?, title: String?, extra: @Com
     }
 }
 
-/** Shown when there's no stream: offers the broadcaster's app and explains how to add a tuner. */
+/** Shown when there's no stream: offers the broadcaster's app and explains how to add a live TV source. */
 @Composable
 private fun NoStreamPanel(vm: GuideViewModel, channel: Channel, error: String?, message: String?, openApp: (Broadcaster) -> Unit) {
     val explanation = when {
         error != null -> error
         channel.isRadio -> "This station doesn't have a public internet stream that Fire TV can play."
-        vm.liveSource == null -> "Connect a TV tuner under Live TV in the guide's sidebar (an HDHomeRun, Channels DVR, or a Jellyfin, TVHeadend or IPTV playlist) to watch here."
-        channel.id.startsWith("sky:") -> "Sky channels come by satellite, so a Freeview tuner can't receive them. Watch them in the NOW app."
+        vm.liveSource == null -> "Add a live TV source under Live TV in the guide's sidebar (Channels DVR, or a Jellyfin, Plex, TVHeadend or IPTV playlist) to watch here."
+        channel.id.startsWith("sky:") -> "Your live TV source doesn't carry Sky channels. Watch them in the NOW app."
         else -> "Your live TV source doesn't include this channel."
     }
     GuideBackground {

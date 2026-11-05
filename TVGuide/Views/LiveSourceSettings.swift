@@ -19,7 +19,6 @@ struct LiveSourceSettings: View {
                     header
                     status
                     channelsDVRSection
-                    tunersSection
                     playlistSection
                     Button { dismiss() } label: { Label("Done", systemImage: "checkmark") }
                 }
@@ -42,7 +41,7 @@ struct LiveSourceSettings: View {
             Text("Live TV")
                 .font(.system(size: 52, weight: .bold))
                 .foregroundStyle(Theme.accent)
-            Text("Apple TV has no aerial input, so live pictures come from a TV tuner on your network. The easiest setup is an HDHomeRun Freeview tuner with Channels DVR, which streams every channel to Apple TV and supplies the guide from the aerial.")
+            Text("Apple TV has no aerial input, so live pictures come from a live TV server or playlist: Channels DVR, Jellyfin, Plex, TVHeadend or an IPTV service. Without one, channels open in the broadcaster's own app.")
                 .font(.system(size: 24))
                 .foregroundStyle(Theme.secondaryText)
         }
@@ -116,25 +115,6 @@ struct LiveSourceSettings: View {
                     Label(busy ? "Connecting…" : "Connect", systemImage: "link")
                 }
                 .disabled(busy)
-            }
-        }
-    }
-
-    // MARK: HDHomeRun
-
-    @ViewBuilder
-    private var tunersSection: some View {
-        if !discovery.tuners.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                sectionTitle("Tuners found", detail: nil)
-                ForEach(discovery.tuners) { tuner in
-                    Label("\(tuner.friendlyName ?? "HDHomeRun") at \(tuner.localIP ?? "your network")",
-                          systemImage: "antenna.radiowaves.left.and.right")
-                        .font(.system(size: 24, weight: .semibold))
-                }
-                Text("HDHomeRun tuners send a stream format Apple TV can't play on its own. Add the tuner to Channels DVR (on a Mac, PC or NAS) and connect to that server above.")
-                    .font(.system(size: 22))
-                    .foregroundStyle(Theme.secondaryText)
             }
         }
     }

@@ -78,7 +78,6 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import com.dotnetappdev.tvguide.data.Channel
 import com.dotnetappdev.tvguide.data.ChannelsDvr
-import com.dotnetappdev.tvguide.data.HdHomeRun
 import com.dotnetappdev.tvguide.data.LiveSource
 import com.dotnetappdev.tvguide.data.Programme
 import com.dotnetappdev.tvguide.data.Region
@@ -330,9 +329,7 @@ fun LiveTvScreen(vm: GuideViewModel, onDone: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val servers = remember { mutableStateListOf<Pair<String, String>>() } // name to url
-    var tuners by remember { mutableStateOf<List<HdHomeRun.Device>>(emptyList()) }
-    var address by remember { mutableStateOf(when (val s = vm.liveSource) {
-        is LiveSource.ChannelsDvr -> LiveSource.host(s.server); is LiveSource.HdHomeRun -> LiveSource.host(s.baseUrl); else -> "" }) }
+    var address by remember { mutableStateOf((vm.liveSource as? LiveSource.ChannelsDvr)?.let { LiveSource.host(it.server) }.orEmpty()) }
     var playlist by remember { mutableStateOf((vm.liveSource as? LiveSource.Playlist)?.url.orEmpty()) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -346,7 +343,6 @@ fun LiveTvScreen(vm: GuideViewModel, onDone: () -> Unit) {
     }
 
     if (!LocalInspectionMode.current) {
-        LaunchedEffect(Unit) { tuners = HdHomeRun.discover() }
         DisposableEffect(Unit) {
             val stop = discoverChannelsDvr(context) { name, url -> if (servers.none { it.second == url }) servers += name to url }
             onDispose { stop() }
@@ -358,7 +354,7 @@ fun LiveTvScreen(vm: GuideViewModel, onDone: () -> Unit) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 50.dp, vertical = 35.dp).widthIn(max = 760.dp),
             verticalArrangement = Arrangement.spacedBy(13.dp)) {
             ScreenTitle("Live TV")
-            Text("Fire TV has no aerial input, so live pictures come from a TV tuner on your network. An HDHomeRun Freeview tuner works on its own – Fire TV plays its streams directly – or through Channels DVR.",
+            Text("Fire TV has no aerial input, so live pictures come from a live TV server or playlist: Channels DVR, Jellyfin, Plex, TVHeadend or an IPTV service. Without one, channels open in the broadcaster's own app.",
                 color = Palette.secondaryText, fontSize = 12.sp)
             (error ?: vm.liveStatus)?.let { Text(it, color = if (error != null) Color(0xFFFF9800) else Palette.accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
             vm.liveSource?.let { source ->
@@ -369,26 +365,20 @@ fun LiveTvScreen(vm: GuideViewModel, onDone: () -> Unit) {
                 }
             }
 
-            Section("Tuners and servers on your network")
-            if (tuners.isEmpty() && servers.isEmpty()) Text("Looking… none found yet. You can also type an address below.", color = Palette.secondaryText, fontSize = 11.sp)
+            Section("Channels DVR servers on your network")
+            if (servers.isEmpty()) Text("Looking… none found yet. You can also type the server's address below.", color = Palette.secondaryText, fontSize = 11.sp)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(vertical = 4.dp)) {
-                items(tuners, key = { it.baseUrl }) { t ->
-                    Button(onClick = { connect(LiveSource.HdHomeRun(t.baseUrl)) }) { Text("${t.name} · ${LiveSource.host(t.baseUrl)}") }
-                }
                 items(servers, key = { it.second }) { (name, url) ->
                     Button(onClick = { connect(LiveSource.ChannelsDvr(url)) }) { Text("Channels DVR: $name") }
                 }
             }
 
-            Section("Connect by address")
+            Section("Channels DVR by address")
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TextInput(address, { address = it }, "e.g. 192.168.1.40", Modifier.width(300.dp).focusRequester(first), onDone = {})
-                Button(enabled = !busy, onClick = {
-                    HdHomeRun.baseUrl(address)?.let { connect(LiveSource.HdHomeRun(it)) } ?: run { error = "That doesn't look like an address." }
-                }) { Text("HDHomeRun") }
+                TextInput(address, { address = it }, "e.g. 192.168.1.20 (port 8089 by default)", Modifier.width(340.dp).focusRequester(first), onDone = {})
                 Button(enabled = !busy, onClick = {
                     ChannelsDvr.serverUrl(address)?.let { connect(LiveSource.ChannelsDvr(it)) } ?: run { error = "That doesn't look like an address." }
-                }) { Text("Channels DVR") }
+                }) { Text("Connect") }
             }
 
             Section("Other live TV source (M3U playlist)")

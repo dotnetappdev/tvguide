@@ -8,7 +8,7 @@ import java.time.Instant
 sealed interface EpgSource {
     data class Live(val updated: Instant) : EpgSource
     data class Cached(val updated: Instant) : EpgSource
-    /** Guide read from the aerial by the viewer's tuner. */
+    /** Guide from the viewer's live TV source (Channels DVR / playlist). */
     data object Tuner : EpgSource
     data object Sample : EpgSource
 }

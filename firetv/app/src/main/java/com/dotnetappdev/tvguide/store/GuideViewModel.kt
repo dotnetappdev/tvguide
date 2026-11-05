@@ -15,7 +15,6 @@ import com.dotnetappdev.tvguide.data.ChannelsDvr
 import com.dotnetappdev.tvguide.data.EpgService
 import com.dotnetappdev.tvguide.data.EpgSnapshot
 import com.dotnetappdev.tvguide.data.EpgSource
-import com.dotnetappdev.tvguide.data.HdHomeRun
 import com.dotnetappdev.tvguide.data.LiveSource
 import com.dotnetappdev.tvguide.data.PlaylistSource
 import com.dotnetappdev.tvguide.data.Programme
@@ -83,7 +82,7 @@ class GuideViewModel(
     var tunedChannelId by mutableStateOf<String?>(null)
     var liveSource by mutableStateOf(readLiveSource()); private set
     var liveStatus by mutableStateOf<String?>(null); private set
-    /** Live stream per channel id from the viewer's tuner / playlist. */
+    /** Live stream per channel id from the viewer's live TV source. */
     var tunerStreams by mutableStateOf<Map<String, String>>(emptyMap()); private set
     /** Song playing now on Rayo stations, by channel id. */
     val nowPlaying = mutableStateMapOf<String, String>()
@@ -200,7 +199,7 @@ class GuideViewModel(
     }
 
     /**
-     * Internet listings first, then Sky's, then the tuner's guide and Rayo's
+     * Internet listings first, then Sky's, then the live TV source's guide and Rayo's
      * on-air shows for anything still empty; radio without listings gets a
      * day-long "live" entry.
      */
@@ -302,7 +301,6 @@ class GuideViewModel(
             when (source) {
                 null -> remove(KEY_SOURCE_TYPE).remove(KEY_SOURCE_VALUE)
                 is LiveSource.ChannelsDvr -> putString(KEY_SOURCE_TYPE, "channels").putString(KEY_SOURCE_VALUE, source.server)
-                is LiveSource.HdHomeRun -> putString(KEY_SOURCE_TYPE, "hdhomerun").putString(KEY_SOURCE_VALUE, source.baseUrl)
                 is LiveSource.Playlist -> putString(KEY_SOURCE_TYPE, "playlist").putString(KEY_SOURCE_VALUE, source.url)
             }
         }.apply()
@@ -326,14 +324,14 @@ class GuideViewModel(
             tunerStreams = data.streams
             tunerSchedules = data.guide
             if (data.guide.isNotEmpty() && state == LoadState.Ready(EpgSource.Sample)) {
-                // Real listings from the aerial beat generated sample ones.
+                // Real listings from the live TV source beat generated sample ones.
                 internetSchedules = emptyMap()
                 state = LoadState.Ready(EpgSource.Tuner)
             }
             assembleSchedules()
             val tv = channels.count { !it.isRadio }
             liveStatus = "${source.label}: ${data.streams.size} of $tv channels can play live" +
-                if (data.guide.isNotEmpty()) " · guide for ${data.guide.size} channels from your tuner" else ""
+                if (data.guide.isNotEmpty()) " · guide for ${data.guide.size} channels from your live TV source" else ""
         } catch (e: Exception) {
             liveStatus = "Couldn't reach ${source.label}: ${e.message ?: "unknown error"}"
         }
@@ -343,7 +341,6 @@ class GuideViewModel(
         val all = channels
         return when (source) {
             is LiveSource.ChannelsDvr -> ChannelsDvr.load(source.server, all, now)
-            is LiveSource.HdHomeRun -> HdHomeRun.load(source.baseUrl, all)
             is LiveSource.Playlist -> PlaylistSource.load(source.url, all)
         }
     }
@@ -352,7 +349,6 @@ class GuideViewModel(
         val value = prefs.getString(KEY_SOURCE_VALUE, null) ?: return null
         return when (prefs.getString(KEY_SOURCE_TYPE, null)) {
             "channels" -> LiveSource.ChannelsDvr(value)
-            "hdhomerun" -> LiveSource.HdHomeRun(value)
             "playlist" -> LiveSource.Playlist(value)
             else -> null
         }

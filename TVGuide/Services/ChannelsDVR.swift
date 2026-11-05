@@ -5,9 +5,8 @@ import FoundationNetworking
 
 /// A Channels DVR server (https://getchannels.com) on the home network.
 ///
-/// Channels DVR turns a tuner such as an HDHomeRun Freeview box into HLS
-/// streams that Apple TV can play, and serves the guide it reads from the
-/// aerial. This client uses three of its endpoints:
+/// Channels DVR serves live TV as HLS streams that Apple TV can play, plus
+/// its own guide data. This client uses three of its endpoints:
 /// - `/devices/ANY/channels.m3u?format=hls` – channel list with HLS streams
 /// - `/devices/ANY/guide?time=…&duration=…` – guide data as JSON
 struct ChannelsDVRClient {

@@ -93,7 +93,7 @@ final class GuideStore {
             apply(try await service.load(channelIDs: ids, forceRefresh: forceRefresh))
         } catch {
             if !tunerSchedules.isEmpty {
-                // No internet listings: the tuner's guide from the aerial covers the free channels.
+                // No internet listings: the live TV source's guide covers its channels.
                 internetSchedules = [:]
                 assembleSchedules()
                 state = .ready(.tuner)
@@ -323,7 +323,7 @@ final class GuideStore {
         }
         assembleSchedules()
         if !listings.isEmpty, let status = liveSourceStatus {
-            liveSourceStatus = status + " · guide for \(listings.count) channels from your tuner"
+            liveSourceStatus = status + " · guide for \(listings.count) channels from your live TV source"
         }
     }
 

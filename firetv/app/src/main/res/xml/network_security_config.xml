@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Home tuners (HDHomeRun, Channels DVR) and many radio/IPTV streams use plain http. -->
+<!-- Home servers (Channels DVR, Jellyfin, TVHeadend) and many radio/IPTV streams use plain http. -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>

@@ -170,7 +170,7 @@ private fun TopBar(vm: GuideViewModel) {
             is GuideViewModel.LoadState.Ready -> when (val src = s.source) {
                 is EpgSource.Live -> "Freeview · ${vm.region.name}${if (vm.includesSky) " + Sky" else ""} · updated ${Fmt.time(src.updated)}" to Color(0xFF3DDC84)
                 is EpgSource.Cached -> "Freeview · ${vm.region.name}${if (vm.includesSky) " + Sky" else ""} · updated ${Fmt.time(src.updated)}" to Color(0xFF3DDC84)
-                EpgSource.Tuner -> "Guide from your tuner · ${vm.region.name}" to Color(0xFF3DDC84)
+                EpgSource.Tuner -> "Guide from your live TV source · ${vm.region.name}" to Color(0xFF3DDC84)
                 EpgSource.Sample -> "Sample listings · offline" to Color(0xFFFF9800)
             }
         }

@@ -2,11 +2,8 @@ import Foundation
 import Network
 import Observation
 
-/// Finds live TV hardware on the home network:
-/// - Channels DVR servers, which advertise themselves over Bonjour.
-/// - HDHomeRun tuners, via SiliconDust's discovery service (it lists tuners
-///   on the same internet connection). These stream raw MPEG-TS, which Apple
-///   TV can't play directly, so they're shown as "add Channels DVR" hints.
+/// Finds Channels DVR servers on the home network (they advertise
+/// themselves over Bonjour).
 @MainActor
 @Observable
 final class LiveTVDiscovery {
@@ -16,21 +13,9 @@ final class LiveTVDiscovery {
         var id: URL { url }
     }
 
-    struct Tuner: Identifiable, Hashable, Decodable {
-        let deviceID: String?
-        let localIP: String?
-        let friendlyName: String?
-        var id: String { deviceID ?? localIP ?? "tuner" }
-
-        enum CodingKeys: String, CodingKey {
-            case deviceID = "DeviceID", localIP = "LocalIP", friendlyName = "FriendlyName"
-        }
-    }
-
     static let channelsServiceType = "_channels_dvr._tcp"
 
     private(set) var servers: [Server] = []
-    private(set) var tuners: [Tuner] = []
     private(set) var isSearching = false
 
     private var browser: NWBrowser?
@@ -45,7 +30,6 @@ final class LiveTVDiscovery {
         }
         browser.start(queue: .main)
         self.browser = browser
-        Task { await findTuners() }
         // Bonjour keeps browsing; stop the spinner after a few seconds.
         Task {
             try? await Task.sleep(for: .seconds(6))
@@ -81,12 +65,5 @@ final class LiveTVDiscovery {
             connection.start(queue: .main)
             resolving.append(connection)
         }
-    }
-
-    private func findTuners() async {
-        guard let url = URL(string: "https://api.hdhomerun.com/discover"),
-              let (data, _) = try? await URLSession.shared.data(from: url),
-              let found = try? JSONDecoder().decode([Tuner].self, from: data) else { return }
-        tuners = found
     }
 }

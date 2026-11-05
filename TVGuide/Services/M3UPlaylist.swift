@@ -4,7 +4,7 @@ import FoundationNetworking
 #endif
 
 /// An extended M3U playlist of live channels, as exported by Channels DVR,
-/// Jellyfin, Plex, TVHeadend, HDHomeRun gateways or an IPTV provider.
+/// Jellyfin, Plex, TVHeadend or an IPTV provider.
 struct M3UPlaylist {
     struct Entry: Equatable {
         var name: String
